@@ -1,0 +1,489 @@
+{
+  "description": "Comprehensive academic evaluation testset for KTU S7 B.Tech Project: RAG & MCP Multi-Agent Assistant",
+  "version": "1.0",
+  "total_cases": 50,
+  "qa_cases": [
+    {
+      "id": "QA-01",
+      "category": "qa_answerable",
+      "domain": "Operating Systems",
+      "query": "What is Belady's Anomaly and what reference string demonstrates it in FIFO?",
+      "expected_answer": "Belady's Anomaly is a phenomenon where increasing the number of allocated physical frames increases the total number of page faults under FIFO replacement. The reference string 1, 2, 3, 4, 1, 2, 5, 1, 2, 3, 4, 5 yields 9 page faults with 3 frames and 10 page faults with 4 frames.",
+      "expected_source_file": "OS_Unit3_Virtual_Memory_Notes.txt",
+      "key_facts": ["Belady's Anomaly", "FIFO", "1, 2, 3, 4, 1, 2, 5, 1, 2, 3, 4, 5"],
+      "should_refuse": false
+    },
+    {
+      "id": "QA-02",
+      "category": "qa_answerable",
+      "domain": "Operating Systems",
+      "query": "What are the six steps of the Page Fault Handling Mechanism?",
+      "expected_answer": "1. CPU references memory; MMU checks page table. 2. If invalid ('0'), a Page Fault Trap interrupt is issued. 3. OS traps into kernel mode and verifies legitimacy. 4. OS finds a free physical frame. 5. Disk I/O fetches page from backing store. 6. OS updates page table (valid='1') and restarts instruction.",
+      "expected_source_file": "OS_Unit3_Virtual_Memory_Notes.txt",
+      "key_facts": ["Page Fault Trap", "free physical frame", "disk I/O", "page table"],
+      "should_refuse": false
+    },
+    {
+      "id": "QA-03",
+      "category": "qa_answerable",
+      "domain": "Operating Systems",
+      "query": "Explain the Working Set Model by Peter J. Denning and how thrashing is prevented.",
+      "expected_answer": "The Working Set Model uses parameter Delta defining the working-set window. WSS_i is the distinct pages referenced in Delta time. Total frame demand is D = sum(WSS_i). If D > m (available frames), thrashing occurs and the OS must suspend processes to restore D <= m.",
+      "expected_source_file": "OS_Unit3_Virtual_Memory_Notes.txt",
+      "key_facts": ["Working Set", "WSS", "locality", "D > m"],
+      "should_refuse": false
+    },
+    {
+      "id": "QA-04",
+      "category": "qa_answerable",
+      "domain": "Operating Systems",
+      "query": "What is the difference between equal frame allocation and proportional frame allocation?",
+      "expected_answer": "Equal allocation splits m frames equally among n processes (m/n frames each). Proportional allocation allocates frames based on the virtual size s_i of process p_i: a_i = (s_i / sum(s_k)) * m.",
+      "expected_source_file": "OS_Unit3_Virtual_Memory_Notes.txt",
+      "key_facts": ["m/n", "virtual size", "proportional", "frames"],
+      "should_refuse": false
+    },
+    {
+      "id": "QA-05",
+      "category": "qa_answerable",
+      "domain": "Operating Systems",
+      "query": "How does the Second-Chance (Clock) page replacement algorithm work?",
+      "expected_answer": "Second-Chance uses a FIFO queue with a reference bit. When accessed, reference bit = 1. The clock pointer inspects frames: if bit is 0, it selects it as victim; if bit is 1, it clears bit to 0, grants a second chance, and advances to the next frame.",
+      "expected_source_file": "OS_Unit3_Virtual_Memory_Notes.txt",
+      "key_facts": ["reference bit", "clock pointer", "second chance"],
+      "should_refuse": false
+    },
+    {
+      "id": "QA-06",
+      "category": "qa_answerable",
+      "domain": "Operating Systems",
+      "query": "Why is Optimal Page Replacement impossible to implement in a general-purpose OS?",
+      "expected_answer": "Optimal replacement replaces the page that will not be used for the longest period of time in the future. It is impossible to implement in general-purpose OS because it requires clairvoyant future knowledge of execution traces.",
+      "expected_source_file": "OS_Unit3_Virtual_Memory_Notes.txt",
+      "key_facts": ["clairvoyant", "future", "longest period", "benchmark"],
+      "should_refuse": false
+    },
+    {
+      "id": "QA-07",
+      "category": "qa_answerable",
+      "domain": "Operating Systems",
+      "query": "What is an Inverted Page Table and what is its primary advantage?",
+      "expected_answer": "An Inverted Page Table has only one entry for each real physical frame of memory containing <process-id, page-number>. Its primary advantage is dramatically decreasing physical memory consumed by page tables, especially on 64-bit architectures.",
+      "expected_source_file": "OS_Unit3_Virtual_Memory_Notes.txt",
+      "key_facts": ["physical frame", "process-id", "page-number", "decreases"],
+      "should_refuse": false
+    },
+    {
+      "id": "QA-08",
+      "category": "qa_answerable",
+      "domain": "Operating Systems",
+      "query": "What is thrashing and what causes it in an operating system?",
+      "expected_answer": "Thrashing is a state where the system spends significantly more time swapping pages in and out of disk than executing instructions. It is caused when the degree of multiprogramming is raised too high, causing total working sets to exceed available physical memory.",
+      "expected_source_file": "OS_Unit3_Virtual_Memory_Notes.txt",
+      "key_facts": ["swapping", "degree of multiprogramming", "CPU utilization", "working set"],
+      "should_refuse": false
+    },
+    {
+      "id": "QA-09",
+      "category": "qa_answerable",
+      "domain": "Operating Systems",
+      "query": "How does a doubly-linked stack implement LRU page replacement without searching?",
+      "expected_answer": "Whenever a page is referenced, it is removed from its current position and moved to the top of the stack. The bottom of the stack always points to the LRU victim page, enabling O(1) victim identification without searching.",
+      "expected_source_file": "OS_Unit3_Virtual_Memory_Notes.txt",
+      "key_facts": ["top of the stack", "bottom", "O(1)", "doubly-linked"],
+      "should_refuse": false
+    },
+    {
+      "id": "QA-10",
+      "category": "qa_answerable",
+      "domain": "Operating Systems",
+      "query": "What is pure demand paging and lazy swapper?",
+      "expected_answer": "In pure demand paging, pages are loaded into main memory only when they are referenced during program execution using a lazy swapper or pager.",
+      "expected_source_file": "OS_Unit3_Virtual_Memory_Notes.txt",
+      "key_facts": ["pure demand paging", "referenced", "lazy swapper"],
+      "should_refuse": false
+    },
+    {
+      "id": "QA-11",
+      "category": "qa_answerable",
+      "domain": "DBMS",
+      "query": "What are the two conditions required for two relations to be union-compatible in relational algebra?",
+      "expected_answer": "1. Relations R and S must have the exact same arity (identical number of attributes). 2. The attribute domains must be pairwise compatible (types of the i-th attributes must match).",
+      "expected_source_file": "DBMS_Unit2_Relational_Algebra_Notes.md",
+      "key_facts": ["same arity", "pairwise compatible", "identical number of attributes"],
+      "should_refuse": false
+    },
+    {
+      "id": "QA-12",
+      "category": "qa_answerable",
+      "domain": "DBMS",
+      "query": "What is the difference between the Select (sigma) and Project (pi) operations in relational algebra?",
+      "expected_answer": "Select (sigma) filters tuples satisfying a predicate condition (horizontal filtering). Project (pi) selects specified attributes and eliminates the rest (vertical filtering), automatically eliminating duplicate tuples.",
+      "expected_source_file": "DBMS_Unit2_Relational_Algebra_Notes.md",
+      "key_facts": ["horizontal", "vertical", "duplicate", "predicate"],
+      "should_refuse": false
+    },
+    {
+      "id": "QA-13",
+      "category": "qa_answerable",
+      "domain": "DBMS",
+      "query": "What is the arity and cardinality of the Cartesian Product of relations R and S?",
+      "expected_answer": "For Cartesian Product R x S, the arity is arity(R) + arity(S), and the cardinality is |R| * |S|.",
+      "expected_source_file": "DBMS_Unit2_Relational_Algebra_Notes.md",
+      "key_facts": ["arity(R) + arity(S)", "|R| * |S|"],
+      "should_refuse": false
+    },
+    {
+      "id": "QA-14",
+      "category": "qa_answerable",
+      "domain": "DBMS",
+      "query": "What is Natural Join and what algebraic properties does it satisfy?",
+      "expected_answer": "Natural Join computes the Cartesian product of R and S, performs equality selection on all attributes with common names, and projects away duplicate columns. It is associative and commutative.",
+      "expected_source_file": "DBMS_Unit2_Relational_Algebra_Notes.md",
+      "key_facts": ["equality selection", "associative", "commutative", "common names"],
+      "should_refuse": false
+    },
+    {
+      "id": "QA-15",
+      "category": "qa_answerable",
+      "domain": "DBMS",
+      "query": "Explain Theta Join and express it using fundamental relational algebra operators.",
+      "expected_answer": "Theta Join combines Cartesian product with a selection condition theta: R bowtie_theta S = sigma_theta(R x S).",
+      "expected_source_file": "DBMS_Unit2_Relational_Algebra_Notes.md",
+      "key_facts": ["sigma_theta(R x S)", "Cartesian product", "selection condition"],
+      "should_refuse": false
+    },
+    {
+      "id": "QA-16",
+      "category": "qa_answerable",
+      "domain": "DBMS",
+      "query": "What is the difference between Left Outer Join and Full Outer Join?",
+      "expected_answer": "Left Outer Join preserves all tuples from the left relation R, padding missing values with NULL if no match exists in S. Full Outer Join preserves all tuples from both relations R and S.",
+      "expected_source_file": "DBMS_Unit2_Relational_Algebra_Notes.md",
+      "key_facts": ["left relation", "NULL", "both relations"],
+      "should_refuse": false
+    },
+    {
+      "id": "QA-17",
+      "category": "qa_answerable",
+      "domain": "DBMS",
+      "query": "What does the Rename operation (rho) do in relational algebra?",
+      "expected_answer": "The Rename operation rho assigns a new name to a relational algebra expression or renames its attributes: rho_{X(A_1, ..., A_n)}(E).",
+      "expected_source_file": "DBMS_Unit2_Relational_Algebra_Notes.md",
+      "key_facts": ["assigns a new name", "expression", "attribute names"],
+      "should_refuse": false
+    },
+    {
+      "id": "QA-18",
+      "category": "qa_answerable",
+      "domain": "DBMS",
+      "query": "Explain the 'Push Selections Down' query optimization heuristic.",
+      "expected_answer": "Push Selections Down performs the select operation (sigma) as early as possible to drastically reduce the number of tuples before executing costly join operations.",
+      "expected_source_file": "DBMS_Unit2_Relational_Algebra_Notes.md",
+      "key_facts": ["as early as possible", "reduces", "tuples before costly joins"],
+      "should_refuse": false
+    },
+    {
+      "id": "QA-19",
+      "category": "qa_answerable",
+      "domain": "DBMS",
+      "query": "Explain the 'Push Projections Down' query optimization heuristic.",
+      "expected_answer": "Push Projections Down performs the project operation (pi) early to discard attributes not required for subsequent joins or final output, reducing tuple width in memory.",
+      "expected_source_file": "DBMS_Unit2_Relational_Algebra_Notes.md",
+      "key_facts": ["discard attributes", "tuple width in memory", "early"],
+      "should_refuse": false
+    },
+    {
+      "id": "QA-20",
+      "category": "qa_answerable",
+      "domain": "DBMS",
+      "query": "What is the formal role of relational algebra in database systems?",
+      "expected_answer": "Relational algebra is a procedural query language that takes relations as input and produces a relation as result. It forms the formal theoretical underpinning for SQL query processing and optimization.",
+      "expected_source_file": "DBMS_Unit2_Relational_Algebra_Notes.md",
+      "key_facts": ["procedural query language", "theoretical underpinning", "SQL query processing"],
+      "should_refuse": false
+    },
+    {
+      "id": "QA-21",
+      "category": "qa_answerable",
+      "domain": "Timetable",
+      "query": "When is the CS402 Operating Systems Internal Exam scheduled, at what time, and in which room?",
+      "expected_answer": "The CS402 Operating Systems & Sys Software exam is scheduled on 14 March 2026 from 10:00 AM - 12:00 PM in Room 304.",
+      "expected_source_file": "KTU_S7_Timetable_and_Exams.txt",
+      "key_facts": ["14 March 2026", "10:00 AM", "Room 304"],
+      "should_refuse": false
+    },
+    {
+      "id": "QA-22",
+      "category": "qa_answerable",
+      "domain": "Timetable",
+      "query": "Who is the faculty in charge for CS404 Database Management Systems?",
+      "expected_answer": "Dr. Biju Thomas is the faculty in-charge for CS404 Database Management Systems.",
+      "expected_source_file": "KTU_S7_Timetable_and_Exams.txt",
+      "key_facts": ["Dr. Biju Thomas", "CS404"],
+      "should_refuse": false
+    },
+    {
+      "id": "QA-23",
+      "category": "qa_answerable",
+      "domain": "Timetable",
+      "query": "What is the deadline for CS432 DBMS Lab Mini-Project Report submission and who is the coordinator?",
+      "expected_answer": "The deadline is 20 March 2026, 05:00 PM, and it must be submitted to Lab Coordinator Prof. Anjali Menon.",
+      "expected_source_file": "KTU_S7_Timetable_and_Exams.txt",
+      "key_facts": ["20 March 2026", "05:00 PM", "Prof. Anjali Menon"],
+      "should_refuse": false
+    },
+    {
+      "id": "QA-24",
+      "category": "qa_answerable",
+      "domain": "Timetable",
+      "query": "When is the S7 Final Year Project Phase-1 review scheduled and what is the venue?",
+      "expected_answer": "The S7 Final Year Project Phase-1 Interim Progress Review is on 25 March 2026, 09:30 AM onwards in Department Seminar Hall A.",
+      "expected_source_file": "KTU_S7_Timetable_and_Exams.txt",
+      "key_facts": ["25 March 2026", "09:30 AM", "Seminar Hall A"],
+      "should_refuse": false
+    },
+    {
+      "id": "QA-25",
+      "category": "qa_answerable",
+      "domain": "Timetable",
+      "query": "What is the calculator policy for the CS402 Internal Exam?",
+      "expected_answer": "Non-programmable scientific calculators (Fx-991MS / Fx-991ES) are permitted.",
+      "expected_source_file": "KTU_S7_Timetable_and_Exams.txt",
+      "key_facts": ["non-programmable", "scientific calculators", "Fx-991MS", "Fx-991ES"],
+      "should_refuse": false
+    },
+    {
+      "id": "QA-26",
+      "category": "qa_answerable",
+      "domain": "Syllabus",
+      "query": "How many credits is the CS402 course and what are its main course objectives?",
+      "expected_answer": "CS402 Operating Systems and System Software carries 4 credits. Its objectives include OS design, process management, CPU scheduling, concurrency control, memory management, file systems, and system software.",
+      "expected_source_file": "KTU_S7_CS402_Syllabus.txt",
+      "key_facts": ["4", "credits", "operating system design", "process management"],
+      "should_refuse": false
+    },
+    {
+      "id": "QA-27",
+      "category": "qa_answerable",
+      "domain": "Syllabus",
+      "query": "Which modules of CS402 are covered in Internal Exam 2?",
+      "expected_answer": "Internal Exam 2 covers Module 3 (Virtual Memory Management) and Module 4 (File Systems & Secondary Storage Structures).",
+      "expected_source_file": "KTU_S7_CS402_Syllabus.txt",
+      "key_facts": ["Modules 3 and 4", "Virtual Memory", "Storage"],
+      "should_refuse": false
+    },
+    {
+      "id": "QA-28",
+      "category": "qa_answerable",
+      "domain": "Syllabus",
+      "query": "What topics are included in Module 5 System Software for CS402?",
+      "expected_answer": "Module 5 covers Translators, Compilers, Interpreters, Two-Pass Assembler (Pass 1 and Pass 2), Macro Processors (MDT, MNT), and Linkers/Loaders.",
+      "expected_source_file": "KTU_S7_CS402_Syllabus.txt",
+      "key_facts": ["Two-Pass Assembler", "Macro Processors", "Linkers", "Loaders"],
+      "should_refuse": false
+    },
+    {
+      "id": "QA-29",
+      "category": "qa_answerable",
+      "domain": "Syllabus",
+      "query": "What is the difference between Pass 1 and Pass 2 of a Two-Pass Assembler in CS402 Module 5?",
+      "expected_answer": "Pass 1 handles Symbol table generation and Location Counter updates. Pass 2 performs Machine code generation and Object file synthesis.",
+      "expected_source_file": "KTU_S7_CS402_Syllabus.txt",
+      "key_facts": ["Pass 1", "Symbol table", "Pass 2", "Machine code"],
+      "should_refuse": false
+    },
+    {
+      "id": "QA-30",
+      "category": "qa_answerable",
+      "domain": "Syllabus",
+      "query": "Who are the prescribed textbook authors for CS402 Operating Systems?",
+      "expected_answer": "Prescribed textbooks are Abraham Silberschatz, Peter B. Galvin, Greg Gagne ('Operating System Concepts') and William Stallings ('Operating Systems: Internals and Design Principles').",
+      "expected_source_file": "KTU_S7_CS402_Syllabus.txt",
+      "key_facts": ["Abraham Silberschatz", "Peter B. Galvin", "Greg Gagne", "William Stallings"],
+      "should_refuse": false
+    },
+    {
+      "id": "QA-31",
+      "category": "qa_unanswerable",
+      "domain": "Out-of-Domain",
+      "query": "Who won the 2022 FIFA World Cup in Qatar?",
+      "expected_answer": "I couldn't find this in your documents.",
+      "expected_source_file": null,
+      "key_facts": ["couldn't find this in your documents"],
+      "should_refuse": true
+    },
+    {
+      "id": "QA-32",
+      "category": "qa_unanswerable",
+      "domain": "Out-of-Domain",
+      "query": "What are the ingredients and recipe for Hyderabadi chicken biryani?",
+      "expected_answer": "I couldn't find this in your documents.",
+      "expected_source_file": null,
+      "key_facts": ["couldn't find this in your documents"],
+      "should_refuse": true
+    },
+    {
+      "id": "QA-33",
+      "category": "qa_unanswerable",
+      "domain": "Out-of-Domain",
+      "query": "Explain the quantum Shor's algorithm for factoring large prime numbers.",
+      "expected_answer": "I couldn't find this in your documents.",
+      "expected_source_file": null,
+      "key_facts": ["couldn't find this in your documents"],
+      "should_refuse": true
+    },
+    {
+      "id": "QA-34",
+      "category": "qa_unanswerable",
+      "domain": "Out-of-Domain",
+      "query": "What is the capital city of Australia and who is the current mayor?",
+      "expected_answer": "I couldn't find this in your documents.",
+      "expected_source_file": null,
+      "key_facts": ["couldn't find this in your documents"],
+      "should_refuse": true
+    },
+    {
+      "id": "QA-35",
+      "category": "qa_unanswerable",
+      "domain": "Out-of-Domain",
+      "query": "What are the topics covered in Module 6 of the CS402 course syllabus?",
+      "expected_answer": "I couldn't find this in your documents.",
+      "expected_source_file": null,
+      "key_facts": ["couldn't find this in your documents"],
+      "should_refuse": true
+    },
+    {
+      "id": "QA-36",
+      "category": "qa_unanswerable",
+      "domain": "Out-of-Domain",
+      "query": "When is the internal examination for CS408 Machine Learning scheduled in the timetable?",
+      "expected_answer": "I couldn't find this in your documents.",
+      "expected_source_file": null,
+      "key_facts": ["couldn't find this in your documents"],
+      "should_refuse": true
+    },
+    {
+      "id": "QA-37",
+      "category": "qa_unanswerable",
+      "domain": "Out-of-Domain",
+      "query": "What is the syllabus and textbook list for KTU S8 Cloud Computing?",
+      "expected_answer": "I couldn't find this in your documents.",
+      "expected_source_file": null,
+      "key_facts": ["couldn't find this in your documents"],
+      "should_refuse": true
+    },
+    {
+      "id": "QA-38",
+      "category": "qa_unanswerable",
+      "domain": "Out-of-Domain",
+      "query": "Explain Einstein's General Theory of Relativity and gravitational waves.",
+      "expected_answer": "I couldn't find this in your documents.",
+      "expected_source_file": null,
+      "key_facts": ["couldn't find this in your documents"],
+      "should_refuse": true
+    },
+    {
+      "id": "QA-39",
+      "category": "qa_unanswerable",
+      "domain": "Out-of-Domain",
+      "query": "What is the stock market share price of Apple Inc. today?",
+      "expected_answer": "I couldn't find this in your documents.",
+      "expected_source_file": null,
+      "key_facts": ["couldn't find this in your documents"],
+      "should_refuse": true
+    },
+    {
+      "id": "QA-40",
+      "category": "qa_unanswerable",
+      "domain": "Out-of-Domain",
+      "query": "Who won the ICC Men's Cricket World Cup in 2023?",
+      "expected_answer": "I couldn't find this in your documents.",
+      "expected_source_file": null,
+      "key_facts": ["couldn't find this in your documents"],
+      "should_refuse": true
+    }
+  ],
+  "action_cases": [
+    {
+      "id": "ACT-01",
+      "category": "action",
+      "domain": "MCP Reminder",
+      "query": "Remind me to study for the CS402 exam tomorrow at 6 PM",
+      "expected_tool": "create_reminder",
+      "expected_params": {"title": "study for the CS402 exam"}
+    },
+    {
+      "id": "ACT-02",
+      "category": "action",
+      "domain": "MCP Reminder",
+      "query": "Show all my scheduled reminders",
+      "expected_tool": "list_reminders",
+      "expected_params": {}
+    },
+    {
+      "id": "ACT-03",
+      "category": "action",
+      "domain": "MCP Reminder",
+      "query": "Delete reminder with ID 1",
+      "expected_tool": "delete_reminder",
+      "expected_params": {"reminder_id": 1}
+    },
+    {
+      "id": "ACT-04",
+      "category": "action",
+      "domain": "MCP Calendar",
+      "query": "Add Project Phase-1 Review on 25 March 2026 from 9:30 AM to 12:00 PM to my calendar",
+      "expected_tool": "create_event",
+      "expected_params": {"title": "Project Phase-1 Review"}
+    },
+    {
+      "id": "ACT-05",
+      "category": "action",
+      "domain": "MCP Calendar",
+      "query": "List all my calendar events",
+      "expected_tool": "list_events",
+      "expected_params": {}
+    },
+    {
+      "id": "ACT-06",
+      "category": "action",
+      "domain": "MCP Calendar",
+      "query": "Delete calendar event with ID 1",
+      "expected_tool": "delete_event",
+      "expected_params": {"event_id": 1}
+    },
+    {
+      "id": "ACT-07",
+      "category": "action",
+      "domain": "MCP Email",
+      "query": "Draft an email to radhika.nair@gec.ac.in asking for clarification on Module 3",
+      "expected_tool": "preview_email",
+      "expected_params": {"recipient": "radhika.nair@gec.ac.in"}
+    },
+    {
+      "id": "ACT-08",
+      "category": "action",
+      "domain": "MCP Email",
+      "query": "Send an email to hod.cse@gec.ac.in with subject Project Update and body Report attached",
+      "expected_tool": "send_email",
+      "expected_params": {"recipient": "hod.cse@gec.ac.in"}
+    },
+    {
+      "id": "ACT-09",
+      "category": "action",
+      "domain": "MCP PDF",
+      "query": "Generate a PDF revision sheet summarizing Virtual Memory Management notes",
+      "expected_tool": "generate_pdf",
+      "expected_params": {"title": "Virtual Memory Management"}
+    },
+    {
+      "id": "ACT-10",
+      "category": "action",
+      "domain": "MCP PDF",
+      "query": "Create a PDF document containing the KTU CS402 syllabus modules",
+      "expected_tool": "generate_pdf",
+      "expected_params": {"title": "KTU CS402 syllabus"}
+    }
+  ]
+}

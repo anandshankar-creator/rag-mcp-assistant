@@ -1,0 +1,17 @@
+{
+  "total_qa_cases": 40,
+  "answerable_qa_cases": 30,
+  "unanswerable_qa_cases": 10,
+  "rag_overall_accuracy": 92.5,
+  "baseline_overall_accuracy": 5.0,
+  "rag_hallucination_rate": 7.5,
+  "baseline_hallucination_rate": 95.0,
+  "rag_refusal_precision_ood": 70.0,
+  "baseline_refusal_precision_ood": 0.0,
+  "retrieval_recall_at_top1": 83.33,
+  "citation_compliance_rate": 100.0,
+  "avg_rag_latency_seconds": 0.411,
+  "avg_baseline_latency_seconds": 0.0,
+  "total_action_cases": 10,
+  "action_tool_accuracy": 100.0
+}

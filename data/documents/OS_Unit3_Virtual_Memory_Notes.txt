@@ -1,0 +1,101 @@
+==============================================================================
+APJ ABDUL KALAM TECHNOLOGICAL UNIVERSITY (KTU)
+DEPARTMENT OF COMPUTER SCIENCE AND ENGINEERING
+COURSE CODE: CS402 | COURSE NAME: OPERATING SYSTEMS & SYSTEM SOFTWARE
+STUDENT LECTURE NOTES - MODULE 3: VIRTUAL MEMORY MANAGEMENT
+==============================================================================
+
+1. BACKGROUND AND MOTIVATION
+Virtual memory is a storage allocation technique that allows secondary memory to be
+addressed as though it were part of the main memory. It decouples the logical memory
+perceived by the user from physical memory (DRAM). This allows programs that are
+significantly larger than physical memory to execute seamlessly, and increases the
+degree of multiprogramming by freeing processes from the restriction of having all
+their pages loaded simultaneously.
+
+2. DEMAND PAGING
+In pure demand paging, pages are loaded into main memory only when they are referenced
+during program execution (lazy swapper / pager).
+
+Step-by-step Page Fault Handling Mechanism:
+Step 1: The CPU references a memory address. The Memory Management Unit (MMU) checks
+        the page table entry.
+Step 2: If the valid/invalid bit is '0' (invalid), an internal hardware interrupt
+        (Page Fault Trap) is issued to the operating system kernel.
+Step 3: The OS traps into kernel mode and verifies whether the memory reference is
+        a legitimate legal address or an illegal access violation (segmentation fault).
+Step 4: If valid, the OS finds a free physical frame in the free-frame list.
+Step 5: A disk I/O operation is scheduled to fetch the required page from the backing
+        store (swap space) into the selected free frame.
+Step 6: Once the I/O completes, the OS updates the page table entry (sets valid bit to '1'
+        and records frame number) and restarts the instruction that caused the trap.
+
+3. PAGE REPLACEMENT ALGORITHMS
+When a page fault occurs and no physical frame is free, a victim page must be swapped
+out to make space.
+
+A. First-In, First-Out (FIFO) Replacement:
+- Replaces the oldest page loaded into memory.
+- Easy to implement using a queue data structure.
+- Belady's Anomaly: In FIFO, increasing the number of allocated physical frames can
+  paradoxically increase the total number of page faults.
+  Classic Proof Reference String: 1, 2, 3, 4, 1, 2, 5, 1, 2, 3, 4, 5
+  - With 3 frames: yields 9 page faults.
+  - With 4 frames: yields 10 page faults (demonstrating the anomaly).
+
+B. Optimal Page Replacement (OPT / MIN algorithm):
+- Replaces the page that will not be used for the longest period of time in the future.
+- Theoretical lower bound on page faults.
+- Impossible to implement in general-purpose OS because it requires clairvoyant
+  knowledge of future execution traces. Used primarily as a performance benchmark.
+
+C. Least Recently Used (LRU) Replacement:
+- Replaces the page that has not been referenced for the longest period of time.
+- Approximates the optimal algorithm by using recent past behavior as a heuristic
+  for future access patterns (locality of reference).
+- Implementation strategies:
+  1. Counters / Time-of-use register: Every page entry has a time field; CPU clock
+     is copied into the entry on each reference. Requires searching the table for minimum.
+  2. Doubly-linked Stack: Whenever a page is referenced, it is removed from its current
+     position and moved to the top of the stack. The bottom of the stack always points
+     to the LRU victim page (no search required, $O(1)$ victim identification).
+
+D. Second-Chance (Clock) Algorithm:
+- Practical FIFO hardware approximation using a single reference bit per page.
+- When a page is accessed, hardware sets reference bit = 1.
+- The clock pointer inspects frames sequentially. If reference bit is 0, that frame is
+  selected as victim. If reference bit is 1, the bit is cleared to 0, the page is
+  given a second chance, and the pointer advances to the next frame.
+
+4. FRAME ALLOCATION & THRASHING
+- Equal Allocation: Splits $m$ frames equally among $n$ processes ($m/n$ frames each).
+- Proportional Allocation: Allocates frames based on the virtual size $s_i$ of process $p_i$:
+  $a_i = (s_i / \sum s_k) \times m$.
+
+Thrashing Phenomenon:
+- Definition: A state in which the system spends significantly more time paging
+  (swapping pages in and out of disk) than executing instructions.
+- Cause: Occurs when the degree of multiprogramming is raised too high, causing the sum
+  of the working sets of all active processes to exceed available physical memory.
+  As page faults escalate, processes wait in the I/O queue, lowering CPU utilization.
+  The OS scheduler naively attempts to boost CPU utilization by introducing even more
+  processes, compounding the thrashing cycle until throughput drops to zero.
+
+Working Set Model (Peter J. Denning):
+- Based on the principle of locality.
+- Parameter $\Delta$ defines the working-set window (a fixed number of page references).
+- $WSS_i$ (Working Set Size of process $i$) is the total number of distinct pages referenced
+  in the most recent $\Delta$ time units.
+- Total demand for frames: $D = \sum WSS_i$.
+- If $D > m$ (available physical frames), thrashing will occur. The OS must suspend or swap
+  out one or more processes to bring $D \le m$.
+
+5. INVERTED PAGE TABLES
+- In standard page tables, each process has an entry for every virtual page ($O(virtual\_space)$).
+- An Inverted Page Table has only one entry for each real physical frame of memory.
+- Each entry consists of: <process-id, page-number>.
+- Advantage: Dramatically decreases physical memory consumed by page tables, especially
+  on 64-bit architectures.
+- Disadvantage: Lookup requires searching the entire inverted table or using a chained
+  hash table; shared memory implementation is complex because each frame can only
+  reference one process-id.

@@ -1,0 +1,71 @@
+==============================================================================
+APJ ABDUL KALAM TECHNOLOGICAL UNIVERSITY (KTU)
+GOVERNMENT ENGINEERING COLLEGE - DEPARTMENT OF COMPUTER SCIENCE & ENGINEERING
+ACADEMIC YEAR: 2025-2026 | SEMESTER: S7 B.TECH CSE (BATCH A)
+OFFICIAL INTERNAL EXAMINATION 2 SCHEDULE & TIMETABLE
+==============================================================================
+
+1. NOTIFICATION & GENERAL INSTRUCTIONS
+All Seventh Semester B.Tech Computer Science & Engineering students are hereby
+informed that the Second Series Internal Test (Internal Exam 2) for the Academic
+Year 2025-2026 will be conducted according to the following schedule.
+Reporting time: 09:45 AM. Students will not be permitted entry after 10:15 AM.
+
+2. DETAILED EXAM DATES & VENUES
+---------------------------------------------------------------------------------------------
+Course Code | Course Name                     | Date          | Time              | Venue    | Syllabus Coverage  | Faculty In-Charge
+---------------------------------------------------------------------------------------------
+CS402       | Operating Systems & Sys Software | 14 March 2026 | 10:00 AM - 12:00 PM | Room 304 | Modules 3 and 4    | Prof. Radhika Nair
+CS404       | Database Management Systems     | 16 March 2026 | 10:00 AM - 12:00 PM | Room 304 | Modules 3, 4 and 5 | Dr. Biju Thomas
+CS406       | Computer Networks               | 18 March 2026 | 10:00 AM - 12:00 PM | Room 305 | Modules 3 and 4    | Prof. Harikrishnan V.
+CS464       | Elective III: Distributed Systems| 21 March 2026 | 10:00 AM - 12:00 PM | Room 305 | Modules 2, 3 and 4 | Dr. Preetha Mohan
+---------------------------------------------------------------------------------------------
+
+Special Notes for CS402 Exam:
+- Internal Exam 2 for CS402 on 14 March covers Module 3 (Virtual Memory Management)
+  and Module 4 (File Systems & Secondary Storage Structures).
+- Maximum Marks: 50 Marks (converted to 20 for internal assessment).
+- Calculator policy: Non-programmable scientific calculators (Fx-991MS / Fx-991ES) permitted.
+
+3. LAB ASSIGNMENT & MINI-PROJECT SUBMISSION DEADLINES
+- CS432 Database Management Systems Lab Mini-Project Report and Code Submission:
+  Deadline: 20 March 2026, 05:00 PM. Submit directly to Lab Coordinator Prof. Anjali Menon.
+- CS434 Network Programming Lab Record Submission:
+  Deadline: 22 March 2026, 04:00 PM.
+- S7 Final Year B.Tech Project Phase-1 Interim Progress Review:
+  Date: 25 March 2026, 09:30 AM onwards in Department Seminar Hall A. Each batch must
+  present a 15-minute presentation followed by a 10-minute viva and architecture demonstration.
+
+4. WEEKLY CLASS TIMETABLE (S7 CSE - BATCH A)
+- Monday:
+  * 09:00 AM - 10:00 AM: CS402 Operating Systems (Prof. Radhika Nair)
+  * 10:00 AM - 11:00 AM: CS404 DBMS (Dr. Biju Thomas)
+  * 11:15 AM - 01:15 PM: CS432 DBMS Lab (Batch A1) / Project Work (Batch A2)
+  * 02:00 PM - 04:00 PM: Project Work / Mentorship
+- Tuesday:
+  * 09:00 AM - 10:00 AM: CS406 Computer Networks
+  * 10:00 AM - 11:00 AM: CS402 Operating Systems Tutorial
+  * 11:15 AM - 12:15 PM: CS464 Distributed Systems
+  * 01:30 PM - 03:30 PM: CS434 Network Lab
+- Wednesday:
+  * 09:00 AM - 10:00 AM: CS404 DBMS Tutorial
+  * 10:00 AM - 11:00 AM: CS406 Computer Networks
+  * 11:15 AM - 12:15 PM: CS402 Operating Systems
+  * 01:30 PM - 03:30 PM: Library & Self-Study
+- Thursday:
+  * 09:00 AM - 11:00 AM: CS432 DBMS Lab (Batch A2)
+  * 11:15 AM - 12:15 PM: CS464 Distributed Systems
+  * 01:30 PM - 03:30 PM: Final Year Project Discussion
+- Friday:
+  * 09:00 AM - 10:00 AM: CS406 Computer Networks
+  * 10:00 AM - 11:00 AM: CS402 Operating Systems
+  * 11:15 AM - 12:15 PM: CS404 DBMS
+
+5. ATTENDANCE CRITERIA & CONDONATION RULES
+- Minimum Attendance Requirement: KTU regulations mandate a minimum of 75% attendance
+  in each individual subject to qualify for the End Semester University Examination.
+- Condonation Window: Students having attendance between 65% and 74.9% may apply for
+  condonation on genuine medical grounds by submitting medical certificates approved by
+  the College Medical Officer and paying the KTU condonation fee of Rs. 1500 per subject.
+- Below 65% Attendance: Not eligible for condonation; student will be awarded 'FE' (Failed
+  due to lack of Eligibility) and must repeat the course.

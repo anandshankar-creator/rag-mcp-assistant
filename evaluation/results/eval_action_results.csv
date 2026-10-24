@@ -1,0 +1,11 @@
+id,query,domain,expected_tool,predicted_tool,is_correct,latency
+ACT-01,Remind me to study for the CS402 exam tomorrow at 6 PM,MCP Reminder,create_reminder,create_reminder,True,0.0
+ACT-02,Show all my scheduled reminders,MCP Reminder,list_reminders,list_reminders,True,0.0
+ACT-03,Delete reminder with ID 1,MCP Reminder,delete_reminder,delete_reminder,True,0.0
+ACT-04,Add Project Phase-1 Review on 25 March 2026 from 9:30 AM to 12:00 PM to my calendar,MCP Calendar,create_event,create_event,True,0.0
+ACT-05,List all my calendar events,MCP Calendar,list_events,list_events,True,0.0
+ACT-06,Delete calendar event with ID 1,MCP Calendar,delete_event,delete_event,True,0.0
+ACT-07,Draft an email to radhika.nair@gec.ac.in asking for clarification on Module 3,MCP Email,preview_email,preview_email,True,0.0
+ACT-08,Send an email to hod.cse@gec.ac.in with subject Project Update and body Report attached,MCP Email,send_email,send_email,True,0.0
+ACT-09,Generate a PDF revision sheet summarizing Virtual Memory Management notes,MCP PDF,generate_pdf,generate_pdf,True,0.0
+ACT-10,Create a PDF document containing the KTU CS402 syllabus modules,MCP PDF,generate_pdf,generate_pdf,True,0.0

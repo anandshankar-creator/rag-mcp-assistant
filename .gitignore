@@ -1,3 +1,4 @@
+```gitignore
 # Virtual Environments
 venv/
 .venv/
@@ -10,14 +11,36 @@ __pycache__/
 *$py.class
 .pytest_cache/
 
-# Environment Variables & Secrets (Keep private keys out of GitHub!)
+# Environment Variables & Secrets
 .env
+.env.*
+!.env.example
 
-# OS-specific files
+# Google OAuth Credentials and Tokens
+credentials/
+token.json
+google_token.json
+*_token.json
+client_secret*.json
+credentials*.json
+token*.pickle
+
+# OS-specific Files
 .DS_Store
 Thumbs.db
 desktop.ini
 
-# Output files generated during runs
+# Generated Output Files
 outputs/events/*.ics
 outputs/*.pdf
+
+# Local Databases and Vector Stores
+db/
+*.db
+*.sqlite
+*.sqlite3
+
+# Logs and Temporary Files
+*.log
+*.tmp
+```

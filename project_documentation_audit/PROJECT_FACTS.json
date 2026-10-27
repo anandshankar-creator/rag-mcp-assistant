@@ -1,0 +1,145 @@
+{
+  "project_identity": {
+    "title": "A Retrieval-Augmented Generation Based Multi-Agent Personal Assistant Architecture Using the Model Context Protocol (MCP)",
+    "course_code": "CS451 / CS402",
+    "course_name": "Final Year B.Tech Project Phase 1",
+    "academic_year": "2025-2026",
+    "department": "Department of Computer Science and Engineering",
+    "university": "APJ Abdul Kalam Technological University (KTU)"
+  },
+  "runtime_environment": {
+    "programming_language": "Python",
+    "language_version": "3.11.1",
+    "primary_os": "Windows 10/11",
+    "deployment_os": "Linux (Debian/Ubuntu container)",
+    "user_interface_framework": "Streamlit 1.38+",
+    "backend_api_framework": "FastAPI 0.115+",
+    "asgi_server": "Uvicorn 0.30+"
+  },
+  "llm_and_inference": {
+    "primary_provider": "google",
+    "primary_model": "gemini-flash-lite-latest",
+    "secondary_provider": "anthropic",
+    "secondary_model": "claude-3-5-sonnet-20241022",
+    "offline_provider": "ollama",
+    "offline_model": "llama3.2",
+    "key_management": "Thread-safe round-robin GeminiKeyManager with 60-second backoff on HTTP 429",
+    "key_masking": "Enabled (AIza...xxxx)"
+  },
+  "rag_subsystem": {
+    "embedding_model": "sentence-transformers/all-MiniLM-L6-v2",
+    "embedding_dimensions": 384,
+    "vector_database": "ChromaDB 0.5.5+",
+    "vector_collection": "student_knowledge_base",
+    "vector_storage_path": "db/chroma",
+    "chunking_strategy": "Sliding window token chunker",
+    "chunk_size_tokens": 500,
+    "chunk_overlap_tokens": 50,
+    "similarity_metric": "Cosine similarity (1.0 - cosine_distance)",
+    "anti_hallucination_threshold": 0.30,
+    "top_k": 4,
+    "supported_document_formats": ["pdf", "docx", "txt", "md"],
+    "total_chunks_indexed_currently": 51,
+    "web_fallback_engine": "DuckDuckGo (ddgs)",
+    "domain_trust_ranking": "4-tier authority heuristic (Tier 1 .edu/.gov to Tier 4 general)"
+  },
+  "multi_agent_subsystem": {
+    "framework": "LangGraph 0.2.20+",
+    "architecture_pattern": "Compiled cyclic StateGraph with dynamic DAG step planner",
+    "agents_count": 8,
+    "agents": [
+      {"name": "load_context", "role": "State initialization from SQLite history and preferences"},
+      {"name": "router_node", "role": "Intent classification (QA, ACTION, CHAINED, CHAT)"},
+      {"name": "planner_node", "role": "JSON Step DAG decomposition for complex chained workflows"},
+      {"name": "executor_node", "role": "Sequential execution of planned DAG steps bounded to 10 steps"},
+      {"name": "rag_node", "role": "Threshold-gated retrieval, anti-hallucination, and web fallback"},
+      {"name": "action_node", "role": "FastMCP dynamic tool execution broker and receipt constructor"},
+      {"name": "chat_node", "role": "Direct conversational LLM response for chit-chat"},
+      {"name": "responder_node", "role": "Final grounded text synthesis, citation formatting, and memory persistence"}
+    ]
+  },
+  "mcp_subsystem": {
+    "protocol": "Anthropic Model Context Protocol (MCP)",
+    "sdk": "mcp (FastMCP)",
+    "sdk_version": ">=1.0.0,<2.0.0",
+    "discovery_mode": "Dynamic runtime inspection via list_tools()",
+    "mcp_servers_count": 5,
+    "mcp_servers": [
+      "mcp_servers.reminder_server",
+      "mcp_servers.calendar_server",
+      "mcp_servers.email_server",
+      "mcp_servers.pdf_server",
+      "mcp_servers.google_services_server"
+    ],
+    "mcp_tools_count": 17,
+    "mcp_tools": [
+      {"server": "reminder_server", "name": "create_reminder", "purpose": "Schedules local desktop notification and records in SQLite"},
+      {"server": "reminder_server", "name": "list_reminders", "purpose": "Lists pending and completed reminders"},
+      {"server": "reminder_server", "name": "delete_reminder", "purpose": "Deletes a reminder by ID"},
+      {"server": "calendar_server", "name": "create_event", "purpose": "Generates standard RFC 5545 .ics calendar event file"},
+      {"server": "calendar_server", "name": "list_events", "purpose": "Queries scheduled local calendar events"},
+      {"server": "calendar_server", "name": "delete_event", "purpose": "Deletes an event and removes the .ics file"},
+      {"server": "email_server", "name": "preview_email", "purpose": "Generates a Human-in-the-Loop email preview card"},
+      {"server": "email_server", "name": "send_email", "purpose": "Sends email via SMTP with mandatory confirmed=True gate"},
+      {"server": "pdf_server", "name": "generate_pdf", "purpose": "Compiles academic PDF summaries using ReportLab with SHA-256"},
+      {"server": "google_services_server", "name": "google_calendar_create_event", "purpose": "Creates verified event in Google Calendar API v3 with timezone"},
+      {"server": "google_services_server", "name": "google_calendar_list_events", "purpose": "Reads back verified events from Google Calendar API v3"},
+      {"server": "google_services_server", "name": "google_gmail_send_message", "purpose": "Dispatches email via Google Workspace Gmail API v1 with HITL"},
+      {"server": "google_services_server", "name": "google_gmail_list_messages", "purpose": "Searches and lists messages in Gmail mailbox"},
+      {"server": "google_services_server", "name": "google_tasks_create", "purpose": "Creates a new task in Google Tasks API v1"},
+      {"server": "google_services_server", "name": "google_tasks_list", "purpose": "Queries tasks from Google Tasks API v1"},
+      {"server": "google_services_server", "name": "google_drive_search", "purpose": "Searches files in user's Google Drive via Drive API v3"},
+      {"server": "google_services_server", "name": "google_keep_note", "purpose": "Captures quick note stub"}
+    ]
+  },
+  "persistence_subsystem": {
+    "engine": "SQLite 3",
+    "database_file": "db/assistant.db",
+    "tables_count": 10,
+    "tables": [
+      "action_logs",
+      "admin_credentials",
+      "calendar_events",
+      "chat_history",
+      "login_attempts",
+      "password_reset_tokens",
+      "reminders",
+      "reset_request_attempts",
+      "revoked_tokens",
+      "user_preferences"
+    ]
+  },
+  "security_and_auth": {
+    "administrator_model": "Single configured administrator account (zero public self-registration)",
+    "password_hashing": "Salted bcrypt (rounds=12)",
+    "session_management": "Cryptographic JWT tokens (HS256) with configurable expiration (120 min)",
+    "logout_invalidation": "SQLite revoked_tokens blacklist (jti tracking)",
+    "global_session_invalidation": "Monotonic auth_version increment on password reset",
+    "brute_force_protection": "Progressive lockout (5 failed attempts locks client for 15 minutes)",
+    "error_masking": "Constant generic message 'Invalid email or password' (prevents account enumeration)",
+    "password_reset_tokens": "Single-use cryptographic URL-safe tokens (32 bytes); only SHA-256 hash stored",
+    "password_reset_expiration": "15 minutes",
+    "password_reset_rate_limit": "Maximum 3 requests per 15 minutes",
+    "resource_access_control": "Streamlit st.stop() halts unauthenticated UI rendering; FastAPI get_current_admin dependency returns 401"
+  },
+  "testing_and_verification": {
+    "test_runner": "pytest 9.0.2",
+    "formal_suite_tests_count": 124,
+    "formal_suite_pass_rate": "100.0% (124/124)",
+    "total_repository_tests_count": 149,
+    "total_repository_pass_rate": "100.0% (149/149)",
+    "browser_audit_tool": "Playwright 1.45+",
+    "verified_screenshots_captured": 11
+  },
+  "git_and_deployment": {
+    "remote_url": "https://github.com/anandshankar-creator/rag-mcp-assistant.git",
+    "branch": "main",
+    "latest_commit_hash": "516a658",
+    "working_tree_status": "Clean (nothing to commit, working tree clean)",
+    "secrets_in_repo": "0 (verified by automated regex scan)",
+    "deployment_platform": "Streamlit Community Cloud",
+    "deployment_entry_point": "ui/streamlit_app.py",
+    "deployment_python_version": "3.11",
+    "cloud_sqlite_compatibility": "pysqlite3-binary monkey-patch verified"
+  }
+}

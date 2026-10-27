@@ -16,6 +16,7 @@ vector DB storage for short-term conversation state.
 
 from __future__ import annotations
 import datetime
+import json
 import sqlite3
 from typing import Any, Dict, List, Optional
 from app.config import settings
@@ -31,7 +32,7 @@ def get_memory_db() -> sqlite3.Connection:
 
 
 def init_memory_tables() -> None:
-    """Initializes chat_history and user_preferences tables."""
+    """Initializes chat_history, user_preferences, and action_logs tables."""
     conn = get_memory_db()
     cursor = conn.cursor()
 
@@ -50,6 +51,18 @@ def init_memory_tables() -> None:
             pref_key TEXT PRIMARY KEY,
             pref_value TEXT NOT NULL,
             updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+    """)
+
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS action_logs (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            session_id TEXT NOT NULL,
+            tool_name TEXT NOT NULL,
+            arguments TEXT NOT NULL,
+            receipt TEXT NOT NULL,
+            status TEXT NOT NULL,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         )
     """)
 
@@ -152,3 +165,75 @@ class ConversationMemory:
         rows = cursor.fetchall()
         conn.close()
         return {row["pref_key"]: row["pref_value"] for row in rows}
+
+    @staticmethod
+    def log_action(
+        session_id: str,
+        tool_name: str,
+        arguments: Dict[str, Any],
+        receipt: Dict[str, Any],
+    ) -> None:
+        """Records an action execution and its receipt to SQLite."""
+        conn = get_memory_db()
+        cursor = conn.cursor()
+        clean_args = dict(arguments)
+        for k in clean_args:
+            if any(s in k.lower() for s in ["password", "token", "secret", "key"]):
+                clean_args[k] = "[REDACTED]"
+        status = receipt.get("status", "unknown") if isinstance(receipt, dict) else "unknown"
+        cursor.execute(
+            "INSERT INTO action_logs (session_id, tool_name, arguments, receipt, status) VALUES (?, ?, ?, ?, ?)",
+            (session_id, tool_name, json.dumps(clean_args), json.dumps(receipt), status),
+        )
+        conn.commit()
+        conn.close()
+
+    @staticmethod
+    def get_latest_actions(
+        session_id: str = "",
+        limit: int = 5,
+        tool_domain: Optional[str] = None,
+    ) -> List[Dict[str, Any]]:
+        """Retrieves recently executed actions for context and follow-up explanations."""
+        conn = get_memory_db()
+        cursor = conn.cursor()
+        query = "SELECT * FROM action_logs "
+        params: List[Any] = []
+        conditions: List[str] = []
+        if session_id:
+            conditions.append("(session_id = ? OR session_id = 'default_user' OR session_id = 'default')")
+            params.append(session_id)
+        if tool_domain:
+            conditions.append("tool_name LIKE ?")
+            params.append(f"%{tool_domain}%")
+
+        if conditions:
+            query += " WHERE " + " AND ".join(conditions)
+
+        query += " ORDER BY id DESC LIMIT ?"
+        params.append(limit)
+
+        cursor.execute(query, tuple(params))
+        rows = cursor.fetchall()
+        conn.close()
+
+        results = []
+        for r in rows:
+            try:
+                args = json.loads(r["arguments"])
+            except Exception:
+                args = r["arguments"]
+            try:
+                rec = json.loads(r["receipt"])
+            except Exception:
+                rec = r["receipt"]
+            results.append({
+                "id": r["id"],
+                "session_id": r["session_id"],
+                "tool_name": r["tool_name"],
+                "arguments": args,
+                "receipt": rec,
+                "status": r["status"],
+                "created_at": r["created_at"],
+            })
+        return results

@@ -16,8 +16,10 @@ Key Architectural Capabilities:
 """
 
 from __future__ import annotations
+import datetime
 import json
 from typing import Any, Dict, List, Optional
+from app.config import settings
 from llm import get_llm_client, LLMResponse, ToolCall
 from mcp_servers.client import get_mcp_client, MCPClientController
 
@@ -26,8 +28,11 @@ Your job is to select and execute the exact MCP tool that fulfills the user's ac
 
 Rules:
 1. Inspect the provided tools carefully and call the single best tool for the user's request.
-2. Formulate valid, required arguments (dates in YYYY-MM-DD HH:MM:SS format, valid emails, clean titles).
-3. Always make a tool call when commanded to set a reminder, schedule an event, send an email, or generate a PDF."""
+2. Calendar & Reminders: When the user asks to set a reminder or schedule an appointment/event for a future date (e.g. "set reminder on 28th october 2026", "schedule meeting on Friday"), use `create_event` (which schedules and verifies on Google Calendar) or `google_calendar_create_event`. If the user specifically asks for a desktop-only notification or alarm, use `create_reminder`.
+3. Email Sending & Safety: When the user asks to send an email, if they have not yet confirmed the draft, use `preview_email` to generate a preview for user approval. If the user explicitly confirms dispatch (e.g. "confirmed", "approve and send"), use `send_email` with `confirmed=True`.
+4. Formulate valid, required arguments (dates in YYYY-MM-DD HH:MM:SS format in Asia/Kolkata timezone, valid RFC 5322 emails, clean titles).
+5. Always make a tool call when commanded to set a reminder, schedule an event, send an email, or generate a PDF.
+6. PDF Generation: When commanded to generate, create, or compile a PDF (e.g. "Create a PDF about upcoming public holidays until November", "generate notes PDF"), invoke `generate_pdf`. Formulate comprehensive, well-structured markdown content with headings (#, ##) and bullet lists (-), and specify a meaningful filename ending in `.pdf`."""
 
 
 class ActionAgent:
@@ -48,10 +53,17 @@ class ActionAgent:
         user_prefs = user_preferences or {}
         tools = self.mcp_client.get_tool_definitions()
 
+        user_name = user_prefs.get('name', settings.USER_NAME)
+        user_email = user_prefs.get('email', settings.USER_DEFAULT_EMAIL)
+        now = datetime.datetime.now()
+        tz_str = getattr(settings, "TIMEZONE", "Asia/Kolkata")
+        current_time_str = now.strftime("%Y-%m-%d %H:%M:%S")
+        temporal_hint = f"Current Date and Time: {current_time_str} (Timezone: {tz_str})"
         context_hint = (
-            f"User Profile: Name={user_prefs.get('name', 'Alex')}, "
-            f"Email={user_prefs.get('email', 'alex.student@ktu.edu.in')}, "
-            f"Default Reminder Lead Time={user_prefs.get('default_reminder_lead_hours', '24')}h."
+            f"User Profile: Name={user_name}, "
+            f"Email={user_email}, "
+            f"Default Reminder Lead Time={user_prefs.get('default_reminder_lead_hours', '24')}h.\n"
+            f"{temporal_hint}"
         )
 
         messages = [
@@ -68,6 +80,11 @@ class ActionAgent:
             for tc in resp.tool_calls:
                 print(f"[ACTION AGENT] Calling MCP tool '{tc.name}' with args: {tc.arguments}")
                 receipt = self.mcp_client.execute_tool(tc.name, tc.arguments)
+                try:
+                    from agents.memory import ConversationMemory
+                    ConversationMemory.log_action(user_prefs.get("session_id", "default_user"), tc.name, tc.arguments, receipt)
+                except Exception:
+                    pass
                 executed_actions.append({
                     "tool_name": tc.name,
                     "arguments": tc.arguments,
@@ -85,26 +102,39 @@ class ActionAgent:
             
             if receipt.get("status") == "success":
                 raw_res = receipt.get("result")
-                if isinstance(raw_res, dict):
+                if tool_name == "generate_pdf":
+                    pdf_fname = raw_res.get("filename") if isinstance(raw_res, dict) else "document.pdf"
+                    action_summary = f"Your PDF is ready.\n\n**{pdf_fname}** — Download PDF"
+                elif isinstance(raw_res, dict):
                     inner_msg = raw_res.get("message") or raw_res.get("title") or f"Tool '{tool_name}' completed successfully."
+                    action_summary = f"Action performed:\n{inner_msg}"
                 elif isinstance(raw_res, list):
                     if raw_res:
                         items_desc = []
                         for item in raw_res:
                             if isinstance(item, dict):
                                 title = item.get("title") or item.get("name") or f"Item #{item.get('id', '')}"
-                                time_info = f" (Time: {item.get('due_datetime') or item.get('start')})" if (item.get("due_datetime") or item.get("start")) else ""
+                                time_info = f" (Time: {item.get('due_datetime') or item.get('start') or item.get('start_datetime')})" if (item.get("due_datetime") or item.get("start") or item.get("start_datetime")) else ""
                                 items_desc.append(f"• {title}{time_info}")
                             else:
                                 items_desc.append(f"• {item}")
                         inner_msg = f"Found {len(raw_res)} record(s):\n" + "\n".join(items_desc)
                     else:
                         inner_msg = "No scheduled records found."
+                    action_summary = f"Action performed:\n{inner_msg}"
                 else:
                     inner_msg = str(raw_res) if raw_res else f"Tool '{tool_name}' completed successfully."
-                action_summary = f"Action performed:\n{inner_msg}"
+                    action_summary = f"Action performed:\n{inner_msg}"
             else:
-                action_summary = f"Action attempted ({tool_name}), but encountered an issue: {receipt.get('message')}"
+                raw_res = receipt.get("result")
+                err_msg = ""
+                if isinstance(raw_res, dict) and raw_res.get("message"):
+                    err_msg = raw_res.get("message")
+                elif receipt.get("message"):
+                    err_msg = receipt.get("message")
+                else:
+                    err_msg = f"Tool '{tool_name}' failed to execute."
+                action_summary = f"Action attempted ({tool_name}), but encountered an issue: {err_msg}"
         else:
             action_summary = "I understood your request, but could not determine which action tool to execute."
 

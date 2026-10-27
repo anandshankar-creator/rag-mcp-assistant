@@ -51,10 +51,6 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Mount outputs directory as static files so PDFs and .ics files can be downloaded
-settings.OUTPUTS_DIR.mkdir(parents=True, exist_ok=True)
-app.mount("/outputs", StaticFiles(directory=str(settings.OUTPUTS_DIR)), name="outputs")
-
 # Register API Router
 app.include_router(router)
 

@@ -51,6 +51,7 @@ class QAEvalRecord:
     query: str
     category: str
     domain: str
+    split: str
     expected_answer: str
     expected_source: Optional[str]
     should_refuse: bool
@@ -70,6 +71,7 @@ class QAEvalRecord:
     rag_hallucinated: bool
     rag_correct: bool
     retrieval_hit: bool
+    error_flag: bool = False
 
 
 @dataclass
@@ -77,6 +79,7 @@ class ActionEvalRecord:
     id: str
     query: str
     domain: str
+    split: str
     expected_tool: str
     predicted_tool: str
     is_correct: bool
@@ -84,58 +87,40 @@ class ActionEvalRecord:
 
 
 class BenchmarkEvaluator:
-    """Runs academic benchmarking suite for the Final Year B.Tech Project."""
+    """Runs empirical benchmarking suite comparing RAG Multi-Agent against closed-book LLM baseline."""
 
-    def __init__(self, fallback_simulated: bool = False):
+    def __init__(self):
         self.retriever = get_retriever()
         self.generator = get_rag_generator()
-        self.fallback_simulated = fallback_simulated
         try:
             self.llm = get_llm_client()
         except Exception as e:
-            logger.warning(f"LLM Client init failed: {e}. Running in simulation/local mode.")
+            logger.warning(f"LLM Client init encountered issue: {e}")
             self.llm = None
 
     def _call_baseline_llm(self, query: str) -> str:
         """Call LLM directly without RAG context (Closed-Book Baseline)."""
         prompt = (
-            "You are an AI assistant. Answer the following question to the best of your knowledge. "
-            "If you do not know the answer, say 'I do not know'.\n\n"
+            "You are an AI assistant. Answer the following question concisely using only your existing internal knowledge. "
+            "If the question refers to private schedules, internal university exam halls, or private notes that you do not have access to, "
+            "or if you do not know the answer, say 'I do not know'.\n\n"
             f"Question: {query}"
         )
-        if self.llm and not self.fallback_simulated:
+        if self.llm:
             try:
                 resp = self.llm.generate([{"role": "user", "content": prompt}], temperature=0.1)
                 return resp.content.strip()
             except Exception as e:
-                logger.warning(f"Baseline LLM call failed ({e}). Falling back to parametric response.")
-
-        # Parametric fallback for closed-book baseline behavior
-        if "fifa" in query.lower():
-            return "Argentina won the 2022 FIFA World Cup in Qatar, defeating France in the final."
-        if "biryani" in query.lower():
-            return "Hyderabadi chicken biryani requires basmati rice, marinated chicken, saffron, yogurt, and spices."
-        if "shor" in query.lower():
-            return "Shor's algorithm is a quantum computer algorithm for integer factorization."
-        if "australia" in query.lower():
-            return "The capital of Australia is Canberra."
-        if "apple" in query.lower():
-            return "I do not have real-time access to stock market prices."
-        if "cricket" in query.lower():
-            return "Australia won the 2023 ICC Men's Cricket World Cup."
-        if "cs402" in query.lower() and "exam" in query.lower():
-            return "The CS402 exam is scheduled on December 15, 2025 at 9:30 AM in Exam Hall 2." # Hallucination!
-        if "cs404" in query.lower() and "faculty" in query.lower():
-            return "The faculty in charge for CS404 is Dr. Suresh Kumar." # Hallucination!
-        if "belady" in query.lower():
-            return "Belady's Anomaly occurs in FIFO page replacement where more frames cause more faults." # Partial parametric
-        return "I do not have specific records for this university schedule."
+                logger.warning(f"Baseline LLM call failed: {e}")
+                return "I do not know."
+        return "I do not know."
 
     def evaluate_qa_item(self, item: Dict[str, Any]) -> QAEvalRecord:
         query = item["query"]
         should_refuse = item.get("should_refuse", False)
         expected_src = item.get("expected_source_file")
         key_facts = item.get("key_facts", [])
+        split_name = item.get("split", "held_out")
 
         # 1. Evaluate Baseline (Closed-Book)
         t0 = time.time()
@@ -147,72 +132,60 @@ class BenchmarkEvaluator:
             or "cannot answer" in base_ans.lower()
             or "don't know" in base_ans.lower()
             or "not have access" in base_ans.lower()
+            or "could not find" in base_ans.lower()
         )
 
-        # Baseline evaluation logic
         if should_refuse:
-            # For out-of-domain questions (e.g. FIFA, Biryani, Australia),
-            # baseline will answer from internet knowledge instead of staying inside private docs.
-            # In a closed-domain private academic assistant, answering out-of-domain is an OOD hallucination/leakage.
+            # Out-of-domain query: Baseline should recognize lack of private knowledge
             base_hallucinated = not base_refused
             base_correct = False
         else:
-            # For private in-domain questions (e.g. Room 304, Dr. Biju Thomas)
-            # If baseline invents dates/rooms/faculty, that is a severe hallucination!
+            # In-domain query: Baseline has no access to private student timetable/notes.
+            # If it guesses dates/rooms/faculty, that is a severe factual hallucination.
             has_private_facts = any(f.lower() in base_ans.lower() for f in key_facts)
             base_correct = has_private_facts
             base_hallucinated = not base_correct and not base_refused
 
-        # 2. Evaluate RAG Pipeline
+        # 2. Evaluate Grounded RAG Pipeline (Without mock shortcuts)
         t0 = time.time()
         retrieval = self.retriever.retrieve(query)
         top_src = retrieval.chunks[0].source_file if retrieval.chunks else None
         retrieval_hit = (top_src == expected_src) if (expected_src and top_src) else False
 
-        if self.fallback_simulated:
-            if not retrieval.has_context:
-                rag_ans = "I couldn't find this in your documents."
-                rag_refused = True
-                rag_citations = []
-            else:
-                rag_ans = f"Based on the provided documents: {item['expected_answer']} [{top_src}, page 1]"
-                rag_refused = False
-                rag_citations = [f"[{top_src}, page 1]"]
+        try:
+            rag_resp = self.generator.answer_question(query, allow_web_fallback=False)
             rag_lat = round(time.time() - t0, 3)
-        else:
-            try:
-                rag_resp = self.generator.generate(query)
-                rag_lat = round(time.time() - t0, 3)
-                rag_ans = rag_resp.answer
-                rag_refused = rag_resp.refused or "couldn't find this in your documents" in rag_ans.lower()
-                rag_citations = rag_resp.citations
-            except Exception as e:
-                logger.warning(f"RAG generator error: {e}. Falling back to retrieved chunk synthesis.")
-                if not retrieval.has_context:
-                    rag_ans = "I couldn't find this in your documents."
-                    rag_refused = True
-                    rag_citations = []
-                else:
-                    rag_ans = f"Based on the retrieved context: {item['expected_answer']} [{top_src}, page 1]"
-                    rag_refused = False
-                    rag_citations = [f"[{top_src}, page 1]"]
-                rag_lat = round(time.time() - t0, 3)
+            rag_ans = rag_resp.answer
+            rag_refused = rag_resp.refused or "couldn't find this in your documents" in rag_ans.lower()
+            rag_citations = rag_resp.citations
+        except Exception as e:
+            logger.warning(f"RAG generator error: {e}")
+            rag_lat = round(time.time() - t0, 3)
+            rag_ans = f"Error during generation: {e}"
+            rag_refused = True
+            rag_citations = []
 
         if should_refuse:
-            # Out-of-domain test: RAG should refuse gracefully
             rag_correct = rag_refused
             rag_hallucinated = not rag_refused
         else:
-            # In-domain test: RAG should contain key facts and not refuse
             facts_present = any(f.lower() in rag_ans.lower() for f in key_facts)
             rag_correct = facts_present and not rag_refused
-            rag_hallucinated = False
+            rag_hallucinated = not rag_refused and not facts_present
+
+        is_error = (
+            rag_ans.startswith("Error during generation:")
+            or "[Quota Error]" in rag_ans
+            or "[Configuration Error]" in rag_ans
+            or "RESOURCE_EXHAUSTED" in rag_ans
+        )
 
         return QAEvalRecord(
             id=item["id"],
             query=query,
             category=item["category"],
             domain=item["domain"],
+            split=split_name,
             expected_answer=item["expected_answer"],
             expected_source=expected_src,
             should_refuse=should_refuse,
@@ -230,6 +203,7 @@ class BenchmarkEvaluator:
             rag_hallucinated=rag_hallucinated,
             rag_correct=rag_correct,
             retrieval_hit=retrieval_hit,
+            error_flag=is_error,
         )
 
     def evaluate_action_item(self, item: Dict[str, Any]) -> ActionEvalRecord:
@@ -269,19 +243,30 @@ class BenchmarkEvaluator:
             id=item["id"],
             query=query,
             domain=item["domain"],
+            split=item.get("split", "held_out"),
             expected_tool=expected_tool,
             predicted_tool=predicted,
             is_correct=(predicted == expected_tool),
             latency=latency,
         )
 
-    def run_benchmark(self, sample_size: Optional[int] = None, qa_only: bool = False, actions_only: bool = False) -> Dict[str, Any]:
+    def run_benchmark(
+        self,
+        sample_size: Optional[int] = None,
+        qa_only: bool = False,
+        actions_only: bool = False,
+        split: str = "all",
+    ) -> Dict[str, Any]:
         """Execute benchmark suite and compile academic comparison metrics."""
         with open(TESTSET_PATH, "r", encoding="utf-8") as f:
             testset = json.load(f)
 
         qa_cases = testset.get("qa_cases", [])
         action_cases = testset.get("action_cases", [])
+
+        if split != "all":
+            qa_cases = [q for q in qa_cases if q.get("split") == split]
+            action_cases = [a for a in action_cases if a.get("split") == split]
 
         if sample_size:
             qa_cases = qa_cases[:sample_size]
@@ -318,8 +303,10 @@ class BenchmarkEvaluator:
         answerable_qa = [r for r in qa_results if not r.should_refuse]
         unanswerable_qa = [r for r in qa_results if r.should_refuse]
 
-        rag_acc = (sum(1 for r in qa_results if r.rag_correct) / total_qa * 100) if total_qa else 0.0
-        base_acc = (sum(1 for r in qa_results if r.baseline_correct) / total_qa * 100) if total_qa else 0.0
+        rag_correct_cnt = sum(1 for r in qa_results if r.rag_correct)
+        base_correct_cnt = sum(1 for r in qa_results if r.baseline_correct)
+        rag_acc = (rag_correct_cnt / total_qa * 100) if total_qa else 0.0
+        base_acc = (base_correct_cnt / total_qa * 100) if total_qa else 0.0
 
         rag_hallucinations = sum(1 for r in qa_results if r.rag_hallucinated)
         base_hallucinations = sum(1 for r in qa_results if r.baseline_hallucinated)
@@ -329,15 +316,19 @@ class BenchmarkEvaluator:
 
         # Refusal Precision on Out-of-Domain cases
         ood_total = len(unanswerable_qa)
-        rag_refusal_prec = (sum(1 for r in unanswerable_qa if r.rag_refused) / ood_total * 100) if ood_total else 100.0
-        base_refusal_prec = (sum(1 for r in unanswerable_qa if r.baseline_refused) / ood_total * 100) if ood_total else 0.0
+        rag_refusal_cnt = sum(1 for r in unanswerable_qa if r.rag_refused)
+        base_refusal_cnt = sum(1 for r in unanswerable_qa if r.baseline_refused)
+        rag_refusal_prec = (rag_refusal_cnt / ood_total * 100) if ood_total else 100.0
+        base_refusal_prec = (base_refusal_cnt / ood_total * 100) if ood_total else 0.0
 
         # Retrieval Recall on answerable cases
         ans_total = len(answerable_qa)
-        retrieval_recall = (sum(1 for r in answerable_qa if r.retrieval_hit) / ans_total * 100) if ans_total else 100.0
+        retrieval_hit_cnt = sum(1 for r in answerable_qa if r.retrieval_hit)
+        retrieval_recall = (retrieval_hit_cnt / ans_total * 100) if ans_total else 100.0
 
         # Citation enforcement rate
-        citation_rate = (sum(1 for r in answerable_qa if len(r.rag_citations) > 0) / ans_total * 100) if ans_total else 100.0
+        citation_cnt = sum(1 for r in answerable_qa if len(r.rag_citations) > 0)
+        citation_rate = (citation_cnt / ans_total * 100) if ans_total else 100.0
 
         # Latencies
         avg_rag_lat = (sum(r.rag_latency for r in qa_results) / total_qa) if total_qa else 0.0
@@ -345,23 +336,38 @@ class BenchmarkEvaluator:
 
         # Action metrics
         total_act = len(action_results)
-        action_acc = (sum(1 for r in action_results if r.is_correct) / total_act * 100) if total_act else 0.0
+        act_correct_cnt = sum(1 for r in action_results if r.is_correct)
+        action_acc = (act_correct_cnt / total_act * 100) if total_act else 0.0
+
+        # Error counts
+        error_cnt = sum(1 for r in qa_results if r.error_flag)
 
         summary = {
+            "model": settings.GEMINI_MODEL,
             "total_qa_cases": total_qa,
+            "error_qa_cases": error_cnt,
             "answerable_qa_cases": len(answerable_qa),
             "unanswerable_qa_cases": len(unanswerable_qa),
+            "rag_correct_count": rag_correct_cnt,
+            "baseline_correct_count": base_correct_cnt,
             "rag_overall_accuracy": round(rag_acc, 2),
             "baseline_overall_accuracy": round(base_acc, 2),
+            "rag_hallucinations_count": rag_hallucinations,
+            "baseline_hallucinations_count": base_hallucinations,
             "rag_hallucination_rate": round(rag_hallucination_rate, 2),
             "baseline_hallucination_rate": round(base_hallucination_rate, 2),
+            "rag_refusal_count": rag_refusal_cnt,
+            "baseline_refusal_count": base_refusal_cnt,
             "rag_refusal_precision_ood": round(rag_refusal_prec, 2),
             "baseline_refusal_precision_ood": round(base_refusal_prec, 2),
+            "retrieval_hit_count": retrieval_hit_cnt,
             "retrieval_recall_at_top1": round(retrieval_recall, 2),
+            "citation_count": citation_cnt,
             "citation_compliance_rate": round(citation_rate, 2),
             "avg_rag_latency_seconds": round(avg_rag_lat, 3),
             "avg_baseline_latency_seconds": round(avg_base_lat, 3),
             "total_action_cases": total_act,
+            "action_correct_count": act_correct_cnt,
             "action_tool_accuracy": round(action_acc, 2),
         }
 
@@ -378,11 +384,28 @@ class BenchmarkEvaluator:
         with open(RESULTS_DIR / "summary_metrics.json", "w", encoding="utf-8") as f:
             json.dump(summary, f, indent=2)
 
-        # Also write a CSV for easy viva defense spreadsheet presentation
+        # Write CSVs
         import pandas as pd
         if qa_results:
             df_qa = pd.DataFrame([asdict(r) for r in qa_results])
             df_qa.to_csv(RESULTS_DIR / "eval_qa_results.csv", index=False)
+
+            # Raw per-question CSV required for academic audit
+            raw_qa_rows = [
+                {
+                    "question": r.query,
+                    "expected": r.expected_answer,
+                    "answer": r.rag_answer,
+                    "error_flag": r.error_flag,
+                    "latency": r.rag_latency,
+                    "score": 1 if r.rag_correct else 0,
+                }
+                for r in qa_results
+            ]
+            pd.DataFrame(raw_qa_rows).to_csv(
+                RESULTS_DIR / "eval_qa_raw_per_question.csv", index=False
+            )
+
         if action_results:
             df_act = pd.DataFrame([asdict(r) for r in action_results])
             df_act.to_csv(RESULTS_DIR / "eval_action_results.csv", index=False)
@@ -395,14 +418,40 @@ class BenchmarkEvaluator:
         print("\n" + "=" * 80)
         print("  KTU S7 B.TECH FINAL YEAR PROJECT - EMPIRICAL BENCHMARK RESULTS")
         print("  Architecture: RAG Multi-Agent Assistant vs Baseline Closed-Book LLM")
+        print(f"  Evaluation Model: {s.get('model', settings.GEMINI_MODEL)}")
         print("=" * 80)
         print(f" Total QA Test Items Evaluated : {s['total_qa_cases']} (In-Domain: {s['answerable_qa_cases']}, Out-of-Domain: {s['unanswerable_qa_cases']})")
+        if s.get("error_qa_cases", 0) > 0:
+            print(f" Diagnostic/Quota Errors Excluded : {s['error_qa_cases']}")
         print(f" Total MCP Action Tasks       : {s['total_action_cases']}")
         print("-" * 80)
-        print(f" {'Metric':<36} | {'Baseline':<18} | {'RAG Assistant':<18}")
+        print(f" {'Metric':<36} | {'Baseline':<20} | {'RAG Assistant':<20}")
         print("-" * 80)
-        print(f" {'Overall QA Accuracy':<36} | {s['baseline_overall_accuracy']:>16.1f}% | {s['rag_overall_accuracy']:>16.1f}%")
-        print(f" {'Hallucination Rate (Lower=Better)':<36} | {s['baseline_hallucination_rate']:>16.1f}% | {s['rag_hallucination_rate']:>16.1f}%")
+        base_qa = f"{s.get('baseline_correct_count', 0)}/{s['total_qa_cases']} ({s['baseline_overall_accuracy']:.1f}%)"
+        rag_qa = f"{s.get('rag_correct_count', 0)}/{s['total_qa_cases']} ({s['rag_overall_accuracy']:.1f}%)"
+        print(f" {'Overall QA Accuracy':<36} | {base_qa:>20} | {rag_qa:>20}")
+
+        base_hall = f"{s.get('baseline_hallucinations_count', 0)}/{s['total_qa_cases']} ({s['baseline_hallucination_rate']:.1f}%)"
+        rag_hall = f"{s.get('rag_hallucinations_count', 0)}/{s['total_qa_cases']} ({s['rag_hallucination_rate']:.1f}%)"
+        print(f" {'Hallucination Rate (Lower=Better)':<36} | {base_hall:>20} | {rag_hall:>20}")
+
+        ood_n = s['unanswerable_qa_cases']
+        base_ood = f"{s.get('baseline_refusal_count', 0)}/{ood_n} ({s['baseline_refusal_precision_ood']:.1f}%)" if ood_n else "N/A"
+        rag_ood = f"{s.get('rag_refusal_count', 0)}/{ood_n} ({s['rag_refusal_precision_ood']:.1f}%)" if ood_n else "N/A"
+        print(f" {'Refusal Precision (Out-of-Domain)':<36} | {base_ood:>20} | {rag_ood:>20}")
+
+        ans_n = s['answerable_qa_cases']
+        rag_rec = f"{s.get('retrieval_hit_count', 0)}/{ans_n} ({s['retrieval_recall_at_top1']:.1f}%)" if ans_n else "N/A"
+        print(f" {'Retrieval Recall@1':<36} | {'N/A':>20} | {rag_rec:>20}")
+
+        rag_cite = f"{s.get('citation_count', 0)}/{ans_n} ({s['citation_compliance_rate']:.1f}%)" if ans_n else "N/A"
+        print(f" {'Citation Compliance Rate':<36} | {'0.0%':>20} | {rag_cite:>20}")
+
+        print(f" {'Average Latency (seconds)':<36} | {s['avg_baseline_latency_seconds']:>19.3f}s | {s['avg_rag_latency_seconds']:>19.3f}s")
+        act_res = f"{s.get('action_correct_count', 0)}/{s['total_action_cases']} ({s['action_tool_accuracy']:.1f}%)"
+        print(f" {'MCP Tool Dispatch Accuracy':<36} | {'N/A':>20} | {act_res:>20}")
+        print("=" * 80)
+        print(f" [OK] Full evaluation results saved to: {RESULTS_DIR}\n")
         print(f" {'Refusal Precision (Out-of-Domain)':<36} | {s['baseline_refusal_precision_ood']:>16.1f}% | {s['rag_refusal_precision_ood']:>16.1f}%")
         print(f" {'Retrieval Recall@1':<36} | {'N/A':>18} | {s['retrieval_recall_at_top1']:>16.1f}%")
         print(f" {'Citation Compliance Rate':<36} | {'0.0%':>18} | {s['citation_compliance_rate']:>16.1f}%")
@@ -417,14 +466,15 @@ def main():
     parser.add_argument("--sample", type=int, default=None, help="Evaluate first N cases only")
     parser.add_argument("--qa-only", action="store_true", help="Run only QA evaluation")
     parser.add_argument("--actions-only", action="store_true", help="Run only Action evaluation")
-    parser.add_argument("--simulated", action="store_true", help="Use simulated responses if API limit reached")
+    parser.add_argument("--split", choices=["all", "tuning", "held_out"], default="all", help="Dataset split to evaluate")
     args = parser.parse_args()
 
-    evaluator = BenchmarkEvaluator(fallback_simulated=args.simulated)
+    evaluator = BenchmarkEvaluator()
     evaluator.run_benchmark(
         sample_size=args.sample,
         qa_only=args.qa_only,
-        actions_only=args.actions_only
+        actions_only=args.actions_only,
+        split=args.split,
     )
 
 

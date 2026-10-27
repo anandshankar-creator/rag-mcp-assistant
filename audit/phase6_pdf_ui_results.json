@@ -1,0 +1,26 @@
+{
+  "university_email_present": false,
+  "student_name_input_exists": true,
+  "save_button_exists": true,
+  "sidebar_scroll_info": {
+    "scrollHeight": 797,
+    "clientHeight": 797
+  },
+  "screenshot_06": "D:\\rag-mcp-assistant\\audit\\screenshots\\06_compact_sidebar.png",
+  "assistant_response_text": "smart_toy\n\nYour PDF is ready.\n\nUpcoming_Public_Holidays_Nov2026.pdf \u2014 Download PDF\n\n\ud83d\udcc4 Upcoming_Public_Holidays_Nov2026.pdf (2.6 KB \u2022 Academic PDF)\n\n\ud83d\udce5 Download PDF (Upcoming_Public_Holidays_Nov2026.pdf)\n\n\u2705 generate_pdf: Compiled PDF 'Upcoming_Public_Holidays_Nov2026.pdf' \u2014 available for download above.\nkeyboard_arrow_right\n\n\ud83d\udd0d Debug / Trace Telemetry (Agent Decisions)",
+  "pdf_ready_in_text": true,
+  "download_pdf_in_text": true,
+  "download_button_count": 1,
+  "downloaded_file": {
+    "filename": "Upcoming_Public_Holidays_Nov2026.pdf",
+    "size_bytes": 2700,
+    "header": "b'%PDF-'",
+    "is_valid_pdf": true
+  },
+  "screenshot_07": "D:\\rag-mcp-assistant\\audit\\screenshots\\07_chat_pdf_delivery.png",
+  "persistence": {
+    "messages_count": 0,
+    "download_buttons_count": 0,
+    "persisted": false
+  }
+}

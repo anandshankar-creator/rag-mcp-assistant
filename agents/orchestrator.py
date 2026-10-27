@@ -21,18 +21,74 @@ import re
 from typing import Dict, List, Optional
 from llm import get_llm_client, LLMResponse
 
-ROUTER_SYSTEM_PROMPT = """You are the Router for a personal AI assistant architecture.
+ROUTER_SYSTEM_PROMPT = """You are the Router for an intelligent, evidence-grounded personal AI assistant.
 Classify the user's latest message into exactly ONE of the following 4 categories:
-1. "QA" - The user is asking a question about their private documents (university notes, course syllabus, internal exam timetable, lab deadlines, attendance policies, etc.).
-2. "ACTION" - The user is commanding a single specific tool action (e.g. create a reminder, schedule a calendar event, send an email, generate a PDF).
-3. "CHAINED" - The user is asking for a multi-step composite task that combines retrieval and actions (e.g. "Summarize my OS notes, make a PDF, email it to me, and remind me tomorrow").
-4. "CHAT" - General conversation, greeting, general knowledge query, explanation of general programming concepts, or chit-chat.
+1. "QA" - All factual, conceptual, technical, or knowledge inquiries (e.g. definitions, algorithms like "What is Belady's anomaly?", course questions, syllabus, exam dates, deadlines, or general knowledge questions). All knowledge questions MUST be routed to QA so local documents and verified grounding are checked first.
+2. "ACTION" - The user is commanding a specific real-world tool action (e.g. create a reminder, schedule a calendar event, send an email, generate a PDF).
+3. "CHAINED" - The user is asking for a multi-step composite task combining retrieval, synthesis, and actions (e.g. "Summarize my notes, make a PDF, email it to me, and remind me tomorrow").
+4. "CHAT" - Pure social greetings (hello, hi, hey), personal pleasantries, or casual chit-chat that does NOT ask for factual or conceptual knowledge retrieval.
 
 Respond ONLY with a JSON object in this exact schema:
 {
   "route": "QA" | "ACTION" | "CHAINED" | "CHAT",
   "reasoning": "brief explanation"
 }"""
+
+
+def is_profile_query(user_msg: str) -> bool:
+    """Detects inquiries about student profile, configured email, or user identity."""
+    clean = user_msg.lower().strip()
+    if any(w in clean for w in ["send", "write", "draft", "compose", "update", "change"]):
+        return False
+
+    email_signals = [
+        "what is my email",
+        "whats my email",
+        "what's my email",
+        "my email id",
+        "my email address",
+        "tell me my email",
+        "which email",
+        "what email do you have",
+        "what email",
+        "my email",
+    ]
+    if any(sig in clean for sig in email_signals):
+        return True
+
+    identity_signals = [
+        "who am i",
+        "what is my name",
+        "whats my name",
+        "what's my name",
+        "my profile",
+        "my user profile",
+        "my account details",
+        "my student id",
+    ]
+    return any(sig in clean for sig in identity_signals)
+
+
+def is_action_followup_query(user_msg: str) -> bool:
+    """Detects meta-inquiries about how actions were performed or whether an action completed."""
+    clean = user_msg.lower().strip()
+    followup_signals = [
+        "how did you send",
+        "how was that sent",
+        "did you send the email",
+        "did you actually send",
+        "how did you send emails",
+        "was the email sent",
+        "what happened to the email",
+        "how did you schedule",
+        "did you schedule that",
+        "what action did you take",
+        "what did you just do",
+        "how did you do that",
+        "how was that done",
+        "did it work",
+    ]
+    return any(sig in clean for sig in followup_signals)
 
 
 class OrchestratorRouter:
@@ -52,6 +108,18 @@ class OrchestratorRouter:
         clean_msg = user_message.strip()
 
         # Quick heuristic pre-checks for fast routing
+        if is_profile_query(clean_msg):
+            return {
+                "route": "CHAT",
+                "reasoning": "Inquiry about user profile preferences and configured email identity.",
+            }
+
+        if is_action_followup_query(clean_msg):
+            return {
+                "route": "CHAT",
+                "reasoning": "Follow-up inquiry about previous action execution and tool results.",
+            }
+
         lower_msg = clean_msg.lower()
 
         # Check for obvious chained indicators
@@ -90,10 +158,21 @@ class OrchestratorRouter:
             print(f"[ROUTER WARNING] LLM classification fallback triggered: {e}")
 
         # Rule-based fallback
-        if any(w in lower_msg for w in ["remind", "reminder", "alarm", "calendar", "event", "schedule", "send email", "email to", "make pdf", "create pdf"]):
+        if any(w in lower_msg for w in [
+            "remind", "reminder", "alarm", "calendar", "event", "schedule",
+            "send email", "email to", "make pdf", "create pdf", "create a pdf",
+            "generate pdf", "generate a pdf", "compile pdf", "compile a pdf", "make a pdf"
+        ]):
             return {"route": "ACTION", "reasoning": "Keyword action rule triggered."}
-        elif any(w in lower_msg for w in ["when is", "exam", "syllabus", "module", "unit", "notes", "attendance", "room", "venue", "submission"]):
-            return {"route": "QA", "reasoning": "Keyword private document rule triggered."}
+        elif "?" in clean_msg or any(w in lower_msg for w in [
+            "what", "who", "when", "where", "why", "how", "explain", "describe", "define",
+            "anomaly", "belady", "exam", "syllabus", "module", "unit", "notes", "attendance",
+            "room", "venue", "submission", "deadline", "summarize", "summary", "document",
+            "uploaded", "report", "overview", "points", "sections", "ktu", "b.tech",
+            "python", "java", "c++", "algorithm", "code", "programming", "science",
+            "difference", "compare", "kernel", "linux"
+        ]):
+            return {"route": "QA", "reasoning": "Knowledge question rule triggered: checking local documents first."}
         else:
             return {"route": "CHAT", "reasoning": "Defaulting to general conversational assistant."}
 

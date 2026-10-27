@@ -1,0 +1,234 @@
+{
+  "google_token_exists": true,
+  "smtp_user_configured": false,
+  "smtp_password_configured": false,
+  "gmail_api_status": "authenticated",
+  "authenticated_sender_account": "sergio759516@gmail.com",
+  "total_messages_in_account": 5,
+  "action_logs_count": 10,
+  "recent_action_logs": [
+    {
+      "id": 94,
+      "session_id": "sec_test",
+      "tool_name": "send_email",
+      "arguments": {
+        "to": "user@example.com",
+        "password": "[REDACTED]",
+        "api_key": "[REDACTED]",
+        "oauth_token": "[REDACTED]"
+      },
+      "receipt": {
+        "status": "success"
+      },
+      "status": "success",
+      "created_at": "2026-10-27 13:45:50"
+    },
+    {
+      "id": 93,
+      "session_id": "default_user",
+      "tool_name": "send_email",
+      "arguments": {
+        "to": "colleague@example.com",
+        "subject": "Idempotent Subject"
+      },
+      "receipt": {
+        "status": "success",
+        "action": "send_email",
+        "transport": "gmail_api_v1",
+        "provider": "gmail",
+        "sender": "sergio759516@gmail.com",
+        "to": "colleague@example.com",
+        "subject": "Idempotent Subject",
+        "message_id": "gmail_msg_1_18f0a9b",
+        "delivery_state": "accepted_by_provider",
+        "duplicate_prevented": true,
+        "attachment": null,
+        "message": "Email already accepted by Gmail API (Message ID: gmail_msg_1_18f0a9b). Duplicate send prevented on retry. (Note: Accepted by provider; delivery verified in Sent mailbox)."
+      },
+      "status": "success",
+      "created_at": "2026-10-27 13:45:50"
+    },
+    {
+      "id": 92,
+      "session_id": "default_user",
+      "tool_name": "send_email",
+      "arguments": {
+        "to": "colleague@example.com",
+        "subject": "Idempotent Subject"
+      },
+      "receipt": {
+        "status": "success",
+        "action": "send_email",
+        "transport": "gmail_api_v1",
+        "provider": "gmail",
+        "sender": "sergio759516@gmail.com",
+        "to": "colleague@example.com",
+        "subject": "Idempotent Subject",
+        "message_id": "gmail_msg_1_18f0a9b",
+        "thread_id": "thread_1_99xyz",
+        "delivery_state": "accepted_by_provider",
+        "verified": true,
+        "attachment": null,
+        "message": "Email accepted by Gmail API for transmission to 'colleague@example.com'. Sender: sergio759516@gmail.com. Message ID: gmail_msg_1_18f0a9b. (Note: Message accepted by Gmail provider; final inbox delivery depends on recipient server)."
+      },
+      "status": "success",
+      "created_at": "2026-10-27 13:45:50"
+    },
+    {
+      "id": 91,
+      "session_id": "test_unconfirmed_draft",
+      "tool_name": "preview_email",
+      "arguments": {
+        "to": "hod@gec.ac.in",
+        "subject": "Draft Submission"
+      },
+      "receipt": {
+        "status": "ready_for_confirmation",
+        "requires_confirmation": true
+      },
+      "status": "ready_for_confirmation",
+      "created_at": "2026-10-27 13:45:50"
+    },
+    {
+      "id": 90,
+      "session_id": "test_email_expl",
+      "tool_name": "send_email",
+      "arguments": {
+        "to": "anandshankar898@gmail.com",
+        "subject": "Hi Anand"
+      },
+      "receipt": {
+        "status": "success",
+        "transport": "gmail_api_v1",
+        "message_id": "18f0a9b8c7d6e5",
+        "delivery_state": "accepted_by_provider"
+      },
+      "status": "success",
+      "created_at": "2026-10-27 13:45:50"
+    },
+    {
+      "id": 89,
+      "session_id": "default_user",
+      "tool_name": "send_email",
+      "arguments": {
+        "to": "anandshankar898@gmail.com",
+        "subject": "Delivery State Test"
+      },
+      "receipt": {
+        "status": "success",
+        "action": "send_email",
+        "transport": "gmail_api_v1",
+        "provider": "gmail",
+        "sender": "sergio759516@gmail.com",
+        "to": "anandshankar898@gmail.com",
+        "subject": "Delivery State Test",
+        "message_id": "gmail_msg_1_18f0a9b",
+        "thread_id": "thread_1_99xyz",
+        "delivery_state": "accepted_by_provider",
+        "verified": true,
+        "attachment": null,
+        "message": "Email accepted by Gmail API for transmission to 'anandshankar898@gmail.com'. Sender: sergio759516@gmail.com. Message ID: gmail_msg_1_18f0a9b. (Note: Message accepted by Gmail provider; final inbox delivery depends on recipient server)."
+      },
+      "status": "success",
+      "created_at": "2026-10-27 13:45:50"
+    },
+    {
+      "id": 88,
+      "session_id": "default_user",
+      "tool_name": "send_email",
+      "arguments": {
+        "to": "anandshankar898@gmail.com",
+        "subject": "Permission Test"
+      },
+      "receipt": {
+        "status": "error",
+        "action": "send_email",
+        "provider": "gmail_api_v1",
+        "message": "Gmail API error: 403 Forbidden: Insufficient OAuth permission for scope gmail.send"
+      },
+      "status": "error",
+      "created_at": "2026-10-27 13:45:50"
+    },
+    {
+      "id": 87,
+      "session_id": "default_user",
+      "tool_name": "send_email",
+      "arguments": {
+        "to": "anandshankar898@gmail.com",
+        "subject": "Unconfigured Test"
+      },
+      "receipt": {
+        "status": "error",
+        "action": "send_email",
+        "mode": "unconfigured",
+        "to": "anandshankar898@gmail.com",
+        "subject": "Unconfigured Test",
+        "message": "Email dispatch failed: Credentials are not configured. Neither Google OAuth Gmail service nor SMTP credentials (GMAIL_USER/GMAIL_APP_PASSWORD) are configured in .env."
+      },
+      "status": "error",
+      "created_at": "2026-10-27 13:45:50"
+    },
+    {
+      "id": 86,
+      "session_id": "default_user",
+      "tool_name": "send_email",
+      "arguments": {
+        "to": "anandshankar898@gmail.com",
+        "subject": "Project Meeting Update"
+      },
+      "receipt": {
+        "status": "success",
+        "action": "send_email",
+        "transport": "gmail_api_v1",
+        "provider": "gmail",
+        "sender": "sergio759516@gmail.com",
+        "to": "anandshankar898@gmail.com",
+        "subject": "Project Meeting Update",
+        "message_id": "gmail_msg_1_18f0a9b",
+        "thread_id": "thread_1_99xyz",
+        "delivery_state": "accepted_by_provider",
+        "verified": true,
+        "attachment": null,
+        "message": "Email accepted by Gmail API for transmission to 'anandshankar898@gmail.com'. Sender: sergio759516@gmail.com. Message ID: gmail_msg_1_18f0a9b. (Note: Message accepted by Gmail provider; final inbox delivery depends on recipient server)."
+      },
+      "status": "success",
+      "created_at": "2026-10-27 13:45:50"
+    },
+    {
+      "id": 85,
+      "session_id": "live_test_email",
+      "tool_name": "send_email",
+      "arguments": {
+        "to": "anandshankar898@gmail.com",
+        "subject": "Live Assistant Verification"
+      },
+      "receipt": {
+        "status": "success",
+        "action": "send_email",
+        "transport": "gmail_api_v1",
+        "provider": "gmail",
+        "sender": "sergio759516@gmail.com",
+        "to": "anandshankar898@gmail.com",
+        "subject": "Live Assistant Verification",
+        "message_id": "1a17d9a9a0f61f89",
+        "delivery_state": "accepted_by_provider",
+        "duplicate_prevented": true,
+        "attachment": null,
+        "message": "Email already accepted by Gmail API (Message ID: 1a17d9a9a0f61f89). Duplicate send prevented on retry. (Note: Accepted by provider; delivery verified in Sent mailbox)."
+      },
+      "status": "success",
+      "created_at": "2026-10-27 13:45:21"
+    }
+  ],
+  "provider_message_read_error": "<HttpError 404 when requesting https://gmail.googleapis.com/gmail/v1/users/me/messages/18f0a9b8c7d6e5?format=metadata&alt=json returned \"Requested entity was not found.\". Details: \"[{'message': 'Requested entity was not found.', 'domain': 'global', 'reason': 'notFound'}]\">",
+  "verified_provider_message": {
+    "id": "1a17d9a9a0f61f89",
+    "thread_id": "1a17d9a9a0f61f89",
+    "label_ids": [
+      "SENT"
+    ],
+    "snippet": "Hi Anand, This is a verification test from your RAG MCP Assistant confirming real Gmail API delivery. Best regards, Alex",
+    "history_id": "1540",
+    "internal_date": "1793108646000"
+  }
+}

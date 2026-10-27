@@ -15,25 +15,25 @@ Reporting time: 09:45 AM. Students will not be permitted entry after 10:15 AM.
 ---------------------------------------------------------------------------------------------
 Course Code | Course Name                     | Date          | Time              | Venue    | Syllabus Coverage  | Faculty In-Charge
 ---------------------------------------------------------------------------------------------
-CS402       | Operating Systems & Sys Software | 14 March 2026 | 10:00 AM - 12:00 PM | Room 304 | Modules 3 and 4    | Prof. Radhika Nair
-CS404       | Database Management Systems     | 16 March 2026 | 10:00 AM - 12:00 PM | Room 304 | Modules 3, 4 and 5 | Dr. Biju Thomas
-CS406       | Computer Networks               | 18 March 2026 | 10:00 AM - 12:00 PM | Room 305 | Modules 3 and 4    | Prof. Harikrishnan V.
-CS464       | Elective III: Distributed Systems| 21 March 2026 | 10:00 AM - 12:00 PM | Room 305 | Modules 2, 3 and 4 | Dr. Preetha Mohan
+CS402       | Operating Systems & Sys Software | 14 November 2026 | 10:00 AM - 12:00 PM | Room 304 | Modules 3 and 4    | Prof. Radhika Nair
+CS404       | Database Management Systems     | 16 November 2026 | 10:00 AM - 12:00 PM | Room 304 | Modules 3, 4 and 5 | Dr. Biju Thomas
+CS406       | Computer Networks               | 18 November 2026 | 10:00 AM - 12:00 PM | Room 305 | Modules 3 and 4    | Prof. Harikrishnan V.
+CS464       | Elective III: Distributed Systems| 21 November 2026 | 10:00 AM - 12:00 PM | Room 305 | Modules 2, 3 and 4 | Dr. Preetha Mohan
 ---------------------------------------------------------------------------------------------
 
 Special Notes for CS402 Exam:
-- Internal Exam 2 for CS402 on 14 March covers Module 3 (Virtual Memory Management)
+- Internal Exam 2 for CS402 on 14 November covers Module 3 (Virtual Memory Management)
   and Module 4 (File Systems & Secondary Storage Structures).
 - Maximum Marks: 50 Marks (converted to 20 for internal assessment).
 - Calculator policy: Non-programmable scientific calculators (Fx-991MS / Fx-991ES) permitted.
 
 3. LAB ASSIGNMENT & MINI-PROJECT SUBMISSION DEADLINES
 - CS432 Database Management Systems Lab Mini-Project Report and Code Submission:
-  Deadline: 20 March 2026, 05:00 PM. Submit directly to Lab Coordinator Prof. Anjali Menon.
+  Deadline: 20 November 2026, 05:00 PM. Submit directly to Lab Coordinator Prof. Anjali Menon.
 - CS434 Network Programming Lab Record Submission:
-  Deadline: 22 March 2026, 04:00 PM.
+  Deadline: 22 November 2026, 04:00 PM.
 - S7 Final Year B.Tech Project Phase-1 Interim Progress Review:
-  Date: 25 March 2026, 09:30 AM onwards in Department Seminar Hall A. Each batch must
+  Date: 25 November 2026, 09:30 AM onwards in Department Seminar Hall A. Each batch must
   present a 15-minute presentation followed by a 10-minute viva and architecture demonstration.
 
 4. WEEKLY CLASS TIMETABLE (S7 CSE - BATCH A)

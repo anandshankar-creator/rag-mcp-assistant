@@ -13,6 +13,9 @@ python-multipart>=0.0.9
 python-dotenv>=1.0.1
 pydantic>=2.8.0
 pydantic-settings>=2.4.0
+bcrypt>=4.0.0
+pyjwt>=2.8.0
+cryptography>=42.0.0
 
 # Vector Database & Embeddings (Local & Open Source)
 chromadb>=0.5.5
@@ -36,11 +39,16 @@ mcp>=1.0.0,<2.0.0
 apscheduler>=3.10.4
 plyer>=2.1.0
 
-# Tools: PDF Generation, Calendar ICS, Document Parsing
+# Tools: PDF Generation, Calendar ICS, Document Parsing, Web Research & Google APIs
 reportlab>=4.2.2
 ics>=0.7.2
 pypdf>=4.3.1
 python-docx>=1.1.2
+duckduckgo-search>=8.0.0
+ddgs>=9.0.0
+beautifulsoup4>=4.12.0
+google-auth-oauthlib>=1.2.0
+google-api-python-client>=2.140.0
 
 # Evaluation & Metrics
 pandas>=2.2.2

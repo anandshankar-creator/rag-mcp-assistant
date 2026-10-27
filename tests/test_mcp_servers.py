@@ -10,6 +10,7 @@ Validates:
 5. client.py: dynamic runtime discovery of all 9 MCP tools.
 """
 
+import datetime
 from pathlib import Path
 import pytest
 
@@ -22,9 +23,10 @@ from mcp_servers.client import get_mcp_client
 
 def test_reminder_mcp_lifecycle():
     """Verify create, list, and delete on reminder_server."""
+    future_dt = (datetime.datetime.now() + datetime.timedelta(days=2)).strftime("%Y-%m-%d 10:00:00")
     res = create_reminder(
         title="Unit Test Reminder",
-        due_datetime="2026-03-25 10:00:00",
+        due_datetime=future_dt,
         note="Pytest automated reminder check",
     )
     assert res.get("status") == "success"
@@ -36,6 +38,70 @@ def test_reminder_mcp_lifecycle():
 
     del_res = delete_reminder(rem_id)
     assert del_res.get("status") == "success"
+
+
+def test_reminder_rejects_past_date():
+    """Verify reminder server strictly rejects due dates in the past."""
+    res = create_reminder(
+        title="Past Reminder",
+        due_datetime="2020-01-01 10:00:00",
+        note="Should fail",
+    )
+    assert res.get("status") == "error"
+    assert "Cannot schedule reminder in the past" in res.get("message", "")
+
+
+def test_reminder_tomorrow_at_6pm():
+    """Verify scheduling for tomorrow at 6 PM."""
+    tomorrow_6pm = (datetime.datetime.now() + datetime.timedelta(days=1)).strftime("%Y-%m-%d 18:00:00")
+    res = create_reminder(
+        title="Revise Unit 3",
+        due_datetime=tomorrow_6pm,
+        note="Study revision",
+    )
+    assert res.get("status") == "success"
+    rem_id = res.get("reminder_id")
+    assert rem_id is not None
+    # Cleanup
+    delete_reminder(rem_id)
+
+
+def test_reminder_day_before_exam_grounding():
+    """Verify chained executor derives 'day before the exam' from timetable text."""
+    from agents.graph import executor_node, AgentState
+
+    state: AgentState = {
+        "session_id": "test_exam_reminder",
+        "user_message": "Check my exam date and remind me the day before the CS402 internal exam",
+        "plan": [
+            {
+                "step": 1,
+                "action": "rag_retrieve",
+                "description": "Check CS402 internal exam date",
+                "args": {"query": "When is the CS402 internal exam?"},
+            },
+            {
+                "step": 2,
+                "action": "create_reminder",
+                "description": "Set reminder on the day before the CS402 internal exam",
+                "args": {"title": "CS402 Exam Tomorrow - Final Revision"},
+            },
+        ],
+        "user_preferences": {},
+        "user_confirmed_actions": False,
+    }
+
+    result = executor_node(state)
+    assert len(result["action_receipts"]) == 1
+    receipt = result["action_receipts"][0]["receipt"]
+    assert receipt["status"] == "success"
+    # Exam is on 14 November 2026 -> day before is 2026-11-13
+    assert receipt.get("arguments", {}).get("due_datetime") == "2026-11-13 18:00:00"
+    
+    # Cleanup
+    rem_id = receipt.get("result", {}).get("reminder_id")
+    if rem_id:
+        delete_reminder(rem_id)
 
 
 def test_calendar_mcp_lifecycle():
@@ -62,7 +128,7 @@ def test_calendar_mcp_lifecycle():
 
 
 def test_email_mcp_hitl_and_send():
-    """Verify Human-in-the-Loop preview and safe simulated sending."""
+    """Verify Human-in-the-Loop preview and confirmation safeguards."""
     preview = preview_email(
         to="hod.cse@gec.ac.in",
         subject="Project Phase 1 Submission",
@@ -72,12 +138,25 @@ def test_email_mcp_hitl_and_send():
     assert preview.get("requires_confirmation") is True
     assert preview.get("to") == "hod.cse@gec.ac.in"
 
-    send_res = send_email(
+    # 1. Unconfirmed send MUST fail with explicit confirmation error
+    unconfirmed_res = send_email(
         to="hod.cse@gec.ac.in",
         subject="Project Phase 1 Submission",
         body="Report body",
+        confirmed=False,
     )
-    assert send_res.get("status") == "success"
+    assert unconfirmed_res.get("status") == "error"
+    assert "confirmation is required" in unconfirmed_res.get("message", "").lower()
+
+    # 2. Confirmed send with unconfigured credentials returns honest unconfigured error
+    confirmed_res = send_email(
+        to="hod.cse@gec.ac.in",
+        subject="Project Phase 1 Submission",
+        body="Report body",
+        confirmed=True,
+    )
+    assert confirmed_res.get("status") == "error"
+    assert "not configured" in confirmed_res.get("message", "").lower()
 
 
 def test_pdf_mcp_generation():

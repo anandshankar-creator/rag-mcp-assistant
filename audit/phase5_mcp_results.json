@@ -1,0 +1,122 @@
+{
+  "discovered_tools_count": 17,
+  "tools": [
+    {
+      "name": "create_reminder",
+      "description": "Creates a new reminder, syncs to Google Calendar (if configured) with read-back verification, and sc"
+    },
+    {
+      "name": "list_reminders",
+      "description": "Lists reminders stored in the assistant database. Args: status_filter: \"all\", \"pending\", or \"complet"
+    },
+    {
+      "name": "delete_reminder",
+      "description": "Cancels and removes a reminder by ID. Also removes from Google Calendar if synced. Args: reminder_id"
+    },
+    {
+      "name": "create_event",
+      "description": "Creates a calendar event on Google Calendar (if configured) with read-back verification, persists it"
+    },
+    {
+      "name": "list_events",
+      "description": "Lists calendar events from Google Calendar (if configured) and the assistant database. Args: date_ra"
+    },
+    {
+      "name": "delete_event",
+      "description": "Deletes a calendar event and its .ics file from disk. Also deletes from Google Calendar if synced. A"
+    },
+    {
+      "name": "preview_email",
+      "description": "Creates an email draft preview for student confirmation before sending. Args: to: Destination email "
+    },
+    {
+      "name": "send_email",
+      "description": "Sends an email via Google Workspace Gmail API v1 (or Gmail SMTP) with optional file attachments. Hum"
+    },
+    {
+      "name": "generate_pdf",
+      "description": "Compiles text content into a formatted academic PDF document saved in outputs/. Args: title: Title o"
+    },
+    {
+      "name": "google_calendar_create_event",
+      "description": "Creates an event on the user's primary Google Calendar via Google Calendar API v3 with read-back ver"
+    },
+    {
+      "name": "google_calendar_list_events",
+      "description": "Lists upcoming events from the user's primary Google Calendar via Google Calendar API v3. Args: max_"
+    },
+    {
+      "name": "google_gmail_send_message",
+      "description": "Sends an email using the authentic Gmail REST API v1. Human-in-the-Loop Safety: Explicit user confir"
+    },
+    {
+      "name": "google_gmail_list_messages",
+      "description": "Lists recent emails matching an optional search query via Gmail REST API v1."
+    },
+    {
+      "name": "google_tasks_create",
+      "description": "Creates a new task in the user's default Google Tasks list via Google Tasks API v1."
+    },
+    {
+      "name": "google_tasks_list",
+      "description": "Lists tasks from the user's default Google Tasks list via Google Tasks API v1."
+    },
+    {
+      "name": "google_drive_search",
+      "description": "Searches documents and files in the user's Google Drive via Google Drive API v3."
+    },
+    {
+      "name": "google_keep_note",
+      "description": "Creates a personal note or reminder note. Academic Architecture Note: Google Keep does not expose a "
+    }
+  ],
+  "pdf_generation_receipt": {
+    "status": "success",
+    "action": "generate_pdf",
+    "title": "Audit Test Academic Notes",
+    "filename": "audit_test_academic_notes.pdf",
+    "file_path": "D:\\rag-mcp-assistant\\outputs\\audit_test_academic_notes.pdf",
+    "file_size_bytes": 1934,
+    "message": "PDF successfully compiled and saved to audit_test_academic_notes.pdf (1934 bytes)."
+  },
+  "pdf_file_exists": true,
+  "pdf_file_size_bytes": 1934,
+  "valid_pdf_magic_bytes": true,
+  "reminder_creation_receipt": {
+    "status": "success",
+    "action": "create_reminder",
+    "provider": "google_calendar",
+    "reminder_id": 142,
+    "google_event_id": "dm0mu8nkrgga1n3d6r2l1lsd2c",
+    "calendar_id": "sergio759516@gmail.com",
+    "calendar_name": "sergio759516@gmail.com",
+    "title": "Audit Persistence Check Reminder",
+    "due_datetime": "2026-11-15 10:00:00",
+    "timezone": "Asia/Kolkata",
+    "note": "Verifying SQLite disk persistence across connection closures",
+    "verified": true,
+    "duplicate_prevented": false,
+    "message": "Reminder 'Audit Persistence Check Reminder' successfully scheduled for 2026-11-15 10:00:00 (Asia/Kolkata) and verified on Google Calendar 'sergio759516@gmail.com'. (Event ID: dm0mu8nkrgga1n3d6r2l1lsd2c)"
+  },
+  "persisted_reminder_found": true,
+  "persisted_reminder_data": {
+    "id": 142,
+    "title": "Audit Persistence Check Reminder",
+    "due_datetime": "2026-11-15 10:00:00",
+    "note": "Verifying SQLite disk persistence across connection closures",
+    "status": "pending",
+    "created_at": "2026-10-27 14:06:20",
+    "google_event_id": "dm0mu8nkrgga1n3d6r2l1lsd2c",
+    "calendar_id": "sergio759516@gmail.com"
+  },
+  "failure_handling_unconfirmed_email": {
+    "status": "error",
+    "error_prevented_success": true,
+    "requires_confirmation": true
+  },
+  "failure_handling_missing_attachment": {
+    "status": "error",
+    "error_prevented_success": true,
+    "message": "Attachment file not found at: 'nonexistent_audit_file.xyz'."
+  }
+}

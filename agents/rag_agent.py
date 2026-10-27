@@ -23,11 +23,14 @@ class RAGAgent:
     def __init__(self, generator=None):
         self.generator = generator or get_rag_generator()
 
-    def run(self, query: str) -> Dict[str, Any]:
+    def run(self, query: str, allow_web_fallback: bool = True) -> Dict[str, Any]:
         """
         Executes grounded retrieval and synthesis for the query.
         """
-        rag_resp: RAGResponse = self.generator.answer_question(query)
+        rag_resp: RAGResponse = self.generator.answer_question(
+            query,
+            allow_web_fallback=allow_web_fallback,
+        )
 
         return {
             "answer": rag_resp.answer,
@@ -35,6 +38,12 @@ class RAGAgent:
             "refused": rag_resp.refused,
             "max_similarity": rag_resp.max_similarity,
             "retrieved_chunks": rag_resp.retrieved_chunks,
+            "source_type": rag_resp.source_type,
+            "origin": getattr(rag_resp, "origin", "LOCAL"),
+            "tiers": getattr(rag_resp, "tiers", []),
+            "verified_quotes": getattr(rag_resp, "verified_quotes", []),
+            "urls": getattr(rag_resp, "urls", []),
+            "decision_path": getattr(rag_resp, "decision_path", ""),
         }
 
 

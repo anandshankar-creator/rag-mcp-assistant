@@ -26,9 +26,10 @@ class DomainTrustRanker:
     """Ranks and filters external URLs based on domain authority and credibility tiers."""
 
     # Tier 1: Highly authoritative (Academic, Governmental, Standards, Official Docs)
-    TIER_1_TLDS = {".edu", ".gov", ".mil", ".ac.uk", ".edu.in", ".gov.in"}
+    TIER_1_TLDS = {".edu", ".gov", ".mil", ".ac.uk", ".edu.in", ".gov.in", ".ac.in"}
     TIER_1_DOMAINS = {
         "wikipedia.org",
+        "britannica.com",
         "docs.python.org",
         "github.com",
         "arxiv.org",
@@ -40,6 +41,9 @@ class DomainTrustRanker:
         "w3.org",
         "developer.mozilla.org",
         "ktu.edu.in",
+        "kerala.gov.in",
+        "aicte-india.org",
+        "ugc.ac.in",
         "reuters.com",
         "bbc.com",
         "bbc.co.uk",

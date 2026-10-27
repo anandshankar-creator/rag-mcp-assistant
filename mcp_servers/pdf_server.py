@@ -19,6 +19,7 @@ from __future__ import annotations
 import datetime
 import html
 import re
+import time
 from pathlib import Path
 from typing import Any, Dict
 from mcp.server.fastmcp import FastMCP
@@ -35,6 +36,27 @@ OUTPUTS_DIR = settings.OUTPUTS_DIR
 OUTPUTS_DIR.mkdir(parents=True, exist_ok=True)
 
 
+def format_inline_markdown(text: str) -> str:
+    """Escapes HTML entities and converts safe markdown bold/italic tags for ReportLab."""
+    safe = html.escape(text)
+    # Convert **bold** to <b>bold</b>
+    safe = re.sub(r"\*\*(.+?)\*\*", r"<b>\1</b>", safe)
+    # Convert *italic* or _italic_ to <i>italic</i> (ensuring no unmatched bullet tags)
+    safe = re.sub(r"(?<!\w)\*([^\*]+?)\*(?!\w)", r"<i>\1</i>", safe)
+    safe = re.sub(r"(?<!\w)_([^_]+?)_(?!\w)", r"<i>\1</i>", safe)
+    return safe
+
+
+def make_safe_paragraph(raw_text: str, style: Any) -> Paragraph:
+    """Creates a ReportLab Paragraph with a fallback to plain text on XML parsing errors."""
+    formatted = format_inline_markdown(raw_text)
+    try:
+        return Paragraph(formatted, style)
+    except Exception:
+        plain = html.escape(re.sub(r"[\*\_<>]", "", raw_text))
+        return Paragraph(plain, style)
+
+
 def parse_markdown_to_flowables(content: str, styles: Any) -> list:
     """
     Parses plain text with basic markdown formatting into ReportLab flowable elements.
@@ -45,7 +67,6 @@ def parse_markdown_to_flowables(content: str, styles: Any) -> list:
     """
     flowables = []
     lines = content.split("\n")
-    in_bullet_mode = False
 
     for line in lines:
         line_str = line.strip()
@@ -53,45 +74,65 @@ def parse_markdown_to_flowables(content: str, styles: Any) -> list:
             flowables.append(Spacer(1, 6))
             continue
 
-        # Escape raw HTML characters to prevent ReportLab XML parser errors
-        safe_line = html.escape(line_str)
-        # Convert **bold** back to <b>bold</b> for ReportLab inline markup
-        safe_line = re.sub(r"\*\*(.*?)\*\*", r"<b>\1</b>", safe_line)
-        safe_line = re.sub(r"\*(.*?)\*", r"<i>\1</i>", safe_line)
-
         # 1. Heading 1
         if line_str.startswith("# "):
-            clean_text = safe_line[2:].strip()
+            clean_text = line_str[2:].strip()
             flowables.append(Spacer(1, 10))
-            flowables.append(Paragraph(clean_text, styles["Heading1"]))
+            flowables.append(make_safe_paragraph(clean_text, styles["Heading1"]))
             flowables.append(Spacer(1, 4))
 
         # 2. Heading 2
         elif line_str.startswith("## "):
-            clean_text = safe_line[3:].strip()
+            clean_text = line_str[3:].strip()
             flowables.append(Spacer(1, 8))
-            flowables.append(Paragraph(clean_text, styles["Heading2"]))
+            flowables.append(make_safe_paragraph(clean_text, styles["Heading2"]))
             flowables.append(Spacer(1, 4))
 
         # 3. Heading 3
         elif line_str.startswith("### "):
-            clean_text = safe_line[4:].strip()
+            clean_text = line_str[4:].strip()
             flowables.append(Spacer(1, 6))
-            flowables.append(Paragraph(clean_text, styles["Heading3"]))
+            flowables.append(make_safe_paragraph(clean_text, styles["Heading3"]))
             flowables.append(Spacer(1, 2))
 
         # 4. Bullet lists
         elif line_str.startswith(("- ", "* ")):
-            clean_text = safe_line[2:].strip()
-            flowables.append(Paragraph(f"&bull; &nbsp; {clean_text}", styles["Bullet"]))
+            clean_text = line_str[2:].strip()
+            formatted_bullet = format_inline_markdown(clean_text)
+            try:
+                flowables.append(Paragraph(f"&bull; &nbsp; {formatted_bullet}", styles["Bullet"]))
+            except Exception:
+                plain = html.escape(re.sub(r"[\*\_<>]", "", clean_text))
+                flowables.append(Paragraph(f"&bull; &nbsp; {plain}", styles["Bullet"]))
             flowables.append(Spacer(1, 2))
 
         # 5. Standard body paragraph
         else:
-            flowables.append(Paragraph(safe_line, styles["BodyText"]))
+            flowables.append(make_safe_paragraph(line_str, styles["BodyText"]))
             flowables.append(Spacer(1, 4))
 
     return flowables
+
+
+def cleanup_old_generated_pdfs(max_age_hours: int = 48) -> int:
+    """
+    Safely cleans up temporary generated PDFs older than the retention threshold.
+    Returns the count of purged files.
+    """
+    purged = 0
+    now = time.time()
+    cutoff = now - (max_age_hours * 3600)
+    try:
+        for p in OUTPUTS_DIR.glob("*.pdf"):
+            if p.is_file() and p.stat().st_mtime < cutoff:
+                try:
+                    p.unlink(missing_ok=True)
+                    purged += 1
+                except Exception:
+                    pass
+    except Exception:
+        pass
+    return purged
 
 
 @mcp.tool()
@@ -109,14 +150,22 @@ def generate_pdf(
         filename: Destination filename (e.g. "OS_Unit3_Summary.pdf").
 
     Returns:
-        Dictionary with status, absolute file path, and file size in bytes.
+        Dictionary with status, filename, download URL, and file size in bytes.
     """
-    # Sanitize filename
-    clean_filename = re.sub(r"[^\w\-.]", "_", filename.strip())
+    # Secure filename sanitization & path traversal prevention
+    raw_name = Path(filename).name.strip()
+    clean_filename = re.sub(r"[^\w\-.]", "_", raw_name)
     if not clean_filename.lower().endswith(".pdf"):
         clean_filename += ".pdf"
 
-    pdf_path = OUTPUTS_DIR / clean_filename
+    pdf_path = (OUTPUTS_DIR / clean_filename).resolve()
+    # Path traversal check
+    if not str(pdf_path).startswith(str(OUTPUTS_DIR.resolve())):
+        return {
+            "status": "error",
+            "action": "generate_pdf",
+            "message": "Invalid filename: Path traversal detected.",
+        }
 
     try:
         doc = SimpleDocTemplate(
@@ -184,7 +233,29 @@ def generate_pdf(
 
         # Build PDF
         doc.build(story)
+
+        # Strict validation: Check file existence, size, magic bytes (%PDF-), and readable structure
+        if not pdf_path.exists() or pdf_path.stat().st_size == 0:
+            pdf_path.unlink(missing_ok=True)
+            return {
+                "status": "error",
+                "action": "generate_pdf",
+                "message": "PDF compilation failed: Generated file is empty or was not created.",
+            }
+
         file_size = pdf_path.stat().st_size
+        with open(pdf_path, "rb") as f:
+            header = f.read(5)
+            f.seek(max(0, file_size - 1024))
+            trailer = f.read()
+
+        if header != b"%PDF-" or b"%%EOF" not in trailer:
+            pdf_path.unlink(missing_ok=True)
+            return {
+                "status": "error",
+                "action": "generate_pdf",
+                "message": "PDF validation failed: Generated file does not contain a valid readable PDF signature.",
+            }
 
         return {
             "status": "success",
@@ -193,10 +264,12 @@ def generate_pdf(
             "filename": clean_filename,
             "file_path": str(pdf_path),
             "file_size_bytes": file_size,
-            "message": f"PDF successfully compiled and saved to {clean_filename} ({file_size} bytes).",
+            "download_url": f"/api/download/pdf/{clean_filename}",
+            "message": f"Your PDF is ready.\n\n**{clean_filename}** — Download PDF",
         }
 
     except Exception as e:
+        pdf_path.unlink(missing_ok=True)
         return {
             "status": "error",
             "action": "generate_pdf",

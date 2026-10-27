@@ -32,10 +32,19 @@ Answer the user's question using ONLY the provided web page excerpts below.
 Mandatory Rules:
 1. Answer strictly using factual claims supported by the provided text.
 2. Cite the source URL for every claim as [URL] (e.g. [https://docs.python.org/]).
-3. If the provided web text does not contain the answer, explicitly state:
-   "I couldn't verify this information from trusted web sources."
-4. Do not speculate, invent, or extrapolate beyond the provided text.
-5. Provide a direct, professional, concise explanation."""
+3. If the provided web text does not contain sufficient reliable evidence to answer the question, explicitly state:
+   "I couldn't verify this information from your documents or reliable external sources. I don't want to guess or provide potentially incorrect information."
+4. Calendar Variations: For calendar-dependent events (such as Christmas celebrations), explain both the Gregorian calendar date (December 25) and Eastern Orthodox / Julian calendar date (January 7) if present in the context.
+5. Conflicting Sources: If retrieved sources present conflicting information or differing dates/rules, explicitly explain the disagreement and cite which source supports each claim.
+6. University & Official Regulations: For university regulations or policies (such as KTU schemes), distinguish between the original regulations and any subsequent amendments or revisions mentioned in the sources.
+7. Do not speculate, invent, or extrapolate beyond the provided text.
+8. Provide a direct, professional, concise explanation."""
+
+
+STANDARD_REFUSAL = (
+    "I couldn't verify this information from your documents or reliable external sources. "
+    "I don't want to guess or provide potentially incorrect information."
+)
 
 
 class WebSearchEngine:
@@ -44,6 +53,7 @@ class WebSearchEngine:
     def __init__(self, trust_ranker: Optional[DomainTrustRanker] = None, llm_client=None):
         self.ranker = trust_ranker or get_trust_ranker()
         self.llm = llm_client or get_llm_client()
+        self.last_search_error: Optional[str] = None
         self.http_headers = {
             "User-Agent": (
                 "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
@@ -52,6 +62,36 @@ class WebSearchEngine:
             "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
             "Accept-Language": "en-US,en;q=0.5",
         }
+
+    @staticmethod
+    def rewrite_query_for_topic(query: str) -> str:
+        """
+        Optimizes search query keywords based on detected topic
+        (KTU, programming, science, current affairs) to prioritize
+        authoritative primary sources.
+        """
+        clean_q = query.strip()
+        lower_q = clean_q.lower()
+
+        # 1. KTU Academic Topic
+        ktu_cues = ["ktu", "b.tech", "btech", "m.tech", "mtech", "kerala technological university", "s1", "s2", "s3", "s4", "s5", "s6", "s7", "s8"]
+        if any(c in lower_q for c in ktu_cues):
+            if "ktu" not in lower_q and "kerala technological university" not in lower_q:
+                return f"KTU {clean_q}"
+            return clean_q
+
+        # 2. Programming & Technical Documentation
+        programming_cues = [
+            "python", "java", "c++", "golang", "rust", "javascript", "typescript",
+            "docker", "kubernetes", "git", "asyncio", "decorator", "algorithm",
+            "data structure", "quicksort", "sql", "sqlite"
+        ]
+        if any(c in lower_q for c in programming_cues):
+            if not any(k in lower_q for k in ["docs", "documentation", "tutorial", "reference"]):
+                return f"{clean_q} official documentation"
+            return clean_q
+
+        return clean_q
 
     def search(
         self,
@@ -62,16 +102,19 @@ class WebSearchEngine:
         """
         Executes free DuckDuckGo web search and ranks results by domain credibility.
         """
+        self.last_search_error = None
         raw_results: List[Dict[str, Any]] = []
+        search_query = self.rewrite_query_for_topic(query)
         try:
             ddgs_client = DDGS()
             # Fetch slightly more raw items to allow trust filtering
             fetch_count = min(max_results * 3, 15)
-            generator = ddgs_client.text(query, max_results=fetch_count)
+            generator = ddgs_client.text(search_query, max_results=fetch_count)
             if generator:
                 raw_results = list(generator)
         except Exception as e:
-            print(f"[WEB SEARCH ERROR] Search request failed for '{query}': {e}")
+            self.last_search_error = str(e)
+            print(f"[WEB SEARCH ERROR] Search request failed for '{search_query}': {e}")
             return []
 
         # Filter & rank by trust authority
@@ -120,15 +163,37 @@ class WebSearchEngine:
         End-to-end fallback: searches web, scrapes top trusted pages,
         and generates a strictly grounded answer with URL citations.
         """
-        ranked_results = self.search(query, max_results=4, min_trust=0.45)
+        self.last_search_error = None
+        try:
+            ranked_results = self.search(query, max_results=4, min_trust=0.45)
+        except Exception as e:
+            return {
+                "success": False,
+                "answer": "Web search is currently unavailable due to a network or search service error. I could not verify this information.",
+                "citations": [],
+                "sources": [],
+                "source_type": "web_error",
+                "error": True,
+            }
+
+        if self.last_search_error:
+            return {
+                "success": False,
+                "answer": "Web search is currently unavailable due to a network or search service error. I could not verify this information.",
+                "citations": [],
+                "sources": [],
+                "source_type": "web_error",
+                "error": True,
+            }
 
         if not ranked_results:
             return {
                 "success": False,
-                "answer": "I couldn't find verified, trusted web sources for this query.",
+                "answer": STANDARD_REFUSAL,
                 "citations": [],
                 "sources": [],
                 "source_type": "web_refusal",
+                "error": False,
             }
 
         # Fetch contents for top trusted sources
@@ -155,10 +220,11 @@ class WebSearchEngine:
         if not context_blocks:
             return {
                 "success": False,
-                "answer": "I retrieved web search results, but could not safely extract page content.",
+                "answer": STANDARD_REFUSAL,
                 "citations": [],
                 "sources": ranked_results,
                 "source_type": "web_refusal",
+                "error": False,
             }
 
         combined_context = "\n".join(context_blocks)
@@ -186,18 +252,46 @@ class WebSearchEngine:
         if not valid_citations and fetched_urls:
             valid_citations.append(fetched_urls[0])
 
-        is_refusal = (
-            "couldn't verify" in raw_answer.lower()
-            or "could not verify" in raw_answer.lower()
-            or "does not contain" in raw_answer.lower()
-        )
+        refusal_patterns = [
+            "couldn't verify", "could not verify",
+            "don't want to guess", "do not want to guess",
+            "cannot be verified", "can't be verified",
+            "does not contain", "cannot answer",
+            "not enough information", "insufficient information",
+        ]
+        is_refusal = any(p in raw_answer.lower() for p in refusal_patterns)
+        if is_refusal:
+            raw_answer = STANDARD_REFUSAL
+
+        # Quote verification in code: extract candidate quotes and verify presence in fetched text
+        raw_quotes = re.findall(r'"([^"\n]{10,})"', raw_answer)
+        verified_quotes = []
+        if not is_refusal:
+            for q in raw_quotes:
+                clean_q = re.sub(r"\s+", " ", q.strip())
+                if clean_q.lower() in combined_context.lower():
+                    verified_quotes.append(clean_q)
+
+        tiers = [
+            {
+                "domain": r.get("domain", ""),
+                "tier": r.get("tier", "Tier 3"),
+                "score": r.get("trust_score", 0.5),
+                "url": r.get("href") or r.get("url", ""),
+            }
+            for r in ranked_results[:3]
+        ]
 
         return {
             "success": not is_refusal,
             "answer": raw_answer,
-            "citations": valid_citations,
+            "citations": [] if is_refusal else valid_citations,
             "sources": ranked_results,
-            "source_type": "web",
+            "source_type": "web_refusal" if is_refusal else "web",
+            "tiers": tiers,
+            "verified_quotes": verified_quotes,
+            "urls": [] if is_refusal else valid_citations,
+            "error": False,
         }
 
 

@@ -89,14 +89,28 @@ def test_email_server():
     assert preview.get("valid_recipient") is True
     assert preview.get("requires_confirmation") is True
 
-    # Test send (either simulated mode or live SMTP)
+    # Test unconfirmed send (must be safely rejected by HITL guard)
+    unconfirmed_res = send_email(
+        to="student@ktu.edu.in",
+        subject="Test Alert",
+        body="This is an automated test from RAG-MCP Assistant.",
+        confirmed=False,
+    )
+    print(f"unconfirmed send_email output: {unconfirmed_res.get('message')}")
+    assert unconfirmed_res.get("status") == "error"
+    assert "confirmation is required" in unconfirmed_res.get("message", "").lower()
+
+    # Test confirmed send (either live SMTP success or unconfigured diagnostic)
     send_res = send_email(
         to="student@ktu.edu.in",
         subject="Test Alert",
         body="This is an automated test from RAG-MCP Assistant.",
+        confirmed=True,
     )
-    print(f"send_email output: {send_res.get('message')}")
-    assert send_res.get("status") == "success"
+    print(f"confirmed send_email output: {send_res.get('message')}")
+    assert send_res.get("status") in ("success", "error")
+    if send_res.get("status") == "error":
+        assert send_res.get("mode") == "unconfigured"
     print("Email server PASSED.")
 
 

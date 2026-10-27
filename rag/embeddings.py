@@ -35,7 +35,10 @@ def get_embedding_model():
         try:
             from sentence_transformers import SentenceTransformer
             print(f"[EMBEDDINGS] Initializing model '{settings.EMBEDDING_MODEL_NAME}' on CPU...")
-            _EMBEDDING_MODEL = SentenceTransformer(settings.EMBEDDING_MODEL_NAME)
+            try:
+                _EMBEDDING_MODEL = SentenceTransformer(settings.EMBEDDING_MODEL_NAME, local_files_only=True)
+            except Exception:
+                _EMBEDDING_MODEL = SentenceTransformer(settings.EMBEDDING_MODEL_NAME)
             print("[EMBEDDINGS] Model loaded successfully.")
         except Exception as e:
             print(f"[WARNING] Could not load sentence-transformers directly: {e}")

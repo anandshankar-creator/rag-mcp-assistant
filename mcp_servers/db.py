@@ -58,6 +58,26 @@ def init_tool_tables() -> None:
         )
     """)
 
+    # Migration: Ensure google_event_id and calendar_id exist in reminders
+    try:
+        cursor.execute("ALTER TABLE reminders ADD COLUMN google_event_id TEXT DEFAULT ''")
+    except Exception:
+        pass
+    try:
+        cursor.execute("ALTER TABLE reminders ADD COLUMN calendar_id TEXT DEFAULT ''")
+    except Exception:
+        pass
+
+    # Migration: Ensure google_event_id and calendar_id exist in calendar_events
+    try:
+        cursor.execute("ALTER TABLE calendar_events ADD COLUMN google_event_id TEXT DEFAULT ''")
+    except Exception:
+        pass
+    try:
+        cursor.execute("ALTER TABLE calendar_events ADD COLUMN calendar_id TEXT DEFAULT ''")
+    except Exception:
+        pass
+
     conn.commit()
     conn.close()
 

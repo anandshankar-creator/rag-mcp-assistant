@@ -36,6 +36,7 @@ class MCPClientController:
         "mcp_servers.calendar_server",
         "mcp_servers.email_server",
         "mcp_servers.pdf_server",
+        "mcp_servers.google_services_server",
     ]
 
     def __init__(self, server_modules: Optional[List[str]] = None):
@@ -158,6 +159,15 @@ class MCPClientController:
 
             # Invoke tool
             result = fn(**sanitized_args)
+            if isinstance(result, dict) and result.get("status") in ("error", "unconfigured"):
+                return {
+                    "status": result.get("status"),
+                    "tool_name": tool_name,
+                    "arguments": sanitized_args,
+                    "result": result,
+                    "message": result.get("message", f"Tool '{tool_name}' returned {result.get('status')}."),
+                }
+
             return {
                 "status": "success",
                 "tool_name": tool_name,

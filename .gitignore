@@ -1,4 +1,3 @@
-```gitignore
 # Virtual Environments
 venv/
 .venv/
@@ -15,6 +14,8 @@ __pycache__/
 .env
 .env.*
 !.env.example
+.streamlit/secrets.toml
+secrets.toml
 
 # Google OAuth Credentials and Tokens
 credentials/
@@ -43,4 +44,3 @@ db/
 # Logs and Temporary Files
 *.log
 *.tmp
-```

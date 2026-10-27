@@ -129,14 +129,16 @@ class Settings:
     GMAIL_APP_PASSWORD: str = _get_config_value("GMAIL_APP_PASSWORD", "")
 
     # --- Administrator Authentication & Security Settings ---
-    ADMIN_EMAIL: str = _get_config_value("ADMIN_EMAIL", "admin@assistant.local").strip().lower()
+    ADMIN_EMAIL: str = _get_config_value("ADMIN_EMAIL", "sergio759516@gmail.com").strip().lower()
     ADMIN_PASSWORD_HASH: str = _get_config_value("ADMIN_PASSWORD_HASH", "").strip()
     ADMIN_INITIAL_PASSWORD: str = _get_config_value("ADMIN_INITIAL_PASSWORD", "AdminSecurePass2026!").strip()
     JWT_SECRET_KEY: str = _get_config_value("JWT_SECRET_KEY", "rag-mcp-assistant-jwt-secret-key-prod-2026").strip()
     JWT_ALGORITHM: str = _get_config_value("JWT_ALGORITHM", "HS256").strip()
     SESSION_EXPIRE_MINUTES: int = int(_get_config_value("SESSION_EXPIRE_MINUTES", "120"))
     RESET_TOKEN_EXPIRE_MINUTES: int = int(_get_config_value("RESET_TOKEN_EXPIRE_MINUTES", "15"))
-    APP_BASE_URL: str = _get_config_value("APP_BASE_URL", "http://localhost:8501").rstrip("/")
+    APP_BASE_URL: str = _get_config_value(
+        "APP_BASE_URL", "https://rag-mcp-assistant-mf654govkzfnjjmmtlgxfqw.streamlit.app"
+    ).rstrip("/")
     MAX_LOGIN_ATTEMPTS: int = int(_get_config_value("MAX_LOGIN_ATTEMPTS", "5"))
     LOCKOUT_MINUTES: int = int(_get_config_value("LOCKOUT_MINUTES", "15"))
     MAX_RESET_ATTEMPTS: int = int(_get_config_value("MAX_RESET_ATTEMPTS", "3"))

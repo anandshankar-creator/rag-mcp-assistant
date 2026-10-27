@@ -414,7 +414,7 @@ def test_auth_email_fail_soft_when_provider_unavailable():
         with patch.object(settings, "GMAIL_APP_PASSWORD", "your_16_digit_app_password"):
             ok, msg = send_password_reset_email(settings.ADMIN_EMAIL, "fake_token_123")
             assert ok is False
-            assert "unavailable" in msg.lower()
+            assert "unconfigured" in msg.lower() or "unavailable" in msg.lower()
 
 
 def test_reset_url_matches_public_base_url():
@@ -422,3 +422,43 @@ def test_reset_url_matches_public_base_url():
     custom_base = "https://personal-assistant.university.edu"
     url = build_password_reset_url("test_token_abc", base_url=custom_base)
     assert url == "https://personal-assistant.university.edu/?action=reset_password&token=test_token_abc"
+
+
+# --- 7. Canonical Admin Identity & Bootstrapping Tests ---
+
+def test_canonical_admin_email_configured_and_retrievable():
+    """Verify canonical administrator email is configured as sergio759516@gmail.com."""
+    assert settings.ADMIN_EMAIL == "sergio759516@gmail.com"
+    admin = get_admin_account()
+    assert admin is not None
+    assert admin["email"] == "sergio759516@gmail.com"
+
+
+def test_admin_email_idempotent_migration():
+    """Verify database auto-migrates old/default admin email to canonical settings.ADMIN_EMAIL."""
+    from app.auth import _seed_admin_account_if_needed
+    conn = get_auth_db()
+    cursor = conn.cursor()
+
+    # Artificially set email back to legacy placeholder
+    cursor.execute("UPDATE admin_credentials SET email = 'admin@assistant.local'")
+    conn.commit()
+
+    # Run migration/seed function
+    _seed_admin_account_if_needed(cursor, conn)
+    conn.close()
+
+    admin = get_admin_account()
+    assert admin["email"] == "sergio759516@gmail.com", "Migration must restore canonical admin email"
+
+
+def test_forgot_password_generates_token_for_canonical_admin():
+    """Verify password recovery generates a valid single-use token for sergio759516@gmail.com."""
+    token = generate_password_reset_token("sergio759516@gmail.com")
+    assert token is not None
+    assert len(token) > 20
+
+    is_valid, email, err = verify_password_reset_token(token)
+    assert is_valid is True
+    assert email == "sergio759516@gmail.com"
+    assert err is None

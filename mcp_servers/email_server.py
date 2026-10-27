@@ -321,7 +321,7 @@ def sync_dispatch_email(
         "mode": "unconfigured",
         "to": to_clean,
         "subject": subject,
-        "message": "Email dispatch failed: Credentials are not configured. Neither Google OAuth Gmail service nor SMTP credentials (GMAIL_USER/GMAIL_APP_PASSWORD) are configured in .env.",
+        "message": "Email dispatch failed: Credentials are not configured. Neither Google OAuth Gmail service nor SMTP credentials (GMAIL_USER/GMAIL_APP_PASSWORD) are configured in Streamlit Secrets or .env.",
     }
     try:
         ConversationMemory.log_action(session_id, "send_email", {"to": to_clean, "subject": subject}, res)

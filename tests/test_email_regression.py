@@ -18,6 +18,7 @@ Verifies:
 
 import datetime
 import json
+from pathlib import Path
 import pytest
 from unittest.mock import MagicMock, patch
 
@@ -343,3 +344,51 @@ def test_regression_8_secrets_are_not_exposed_in_logs_or_telemetry():
     assert "super_secret_password_123" not in json.dumps(args)
     assert "AIzaSySecretApiKey456" not in json.dumps(args)
     assert "ya29.SecretToken789" not in json.dumps(args)
+
+
+# ==============================================================================
+# Requirement 9 & 10: Streamlit Cloud Secrets OAuth Loading & Diagnostics
+# ==============================================================================
+
+def test_regression_9_google_auth_cloud_secrets_support():
+    """Verify that GoogleAuthManager can load authorized user credentials from cloud secrets."""
+    from mcp_servers.google_auth import GoogleAuthManager
+
+    fake_token_data = {
+        "token": "ya29.fake_access_token_abc",
+        "refresh_token": "1//fake_refresh_token_xyz",
+        "token_uri": "https://oauth2.googleapis.com/token",
+        "client_id": "fake_client_id.apps.googleusercontent.com",
+        "client_secret": "fake_client_secret_123",
+        "scopes": ["https://www.googleapis.com/auth/gmail.send"],
+    }
+    raw_json_str = json.dumps(fake_token_data)
+
+    manager = GoogleAuthManager(token_path=Path("non_existent_token.json"))
+    with patch("mcp_servers.google_auth._get_cloud_secret") as mock_get_sec:
+        def side_effect_sec(key):
+            if key == "GOOGLE_TOKEN_JSON":
+                return raw_json_str
+            return None
+
+        mock_get_sec.side_effect = side_effect_sec
+        creds = manager._load_credentials_from_secrets()
+
+        assert creds is not None
+        assert creds.refresh_token == "1//fake_refresh_token_xyz"
+        assert creds.client_id == "fake_client_id.apps.googleusercontent.com"
+
+
+def test_regression_10_google_auth_unconfigured_guidance():
+    """Verify GoogleAuthManager returns honest cloud setup guidance when credentials are absent."""
+    from mcp_servers.google_auth import GoogleAuthManager
+
+    manager = GoogleAuthManager(
+        token_path=Path("non_existent_token.json"),
+        client_secrets_path=Path("non_existent_client_secrets.json"),
+    )
+    with patch("mcp_servers.google_auth._get_cloud_secret", return_value=None):
+        creds, status = manager.get_credentials()
+        assert creds is None
+        assert status["status"] == "unconfigured"
+        assert "Streamlit" in status["message"] or "GOOGLE_TOKEN_JSON" in status["message"]

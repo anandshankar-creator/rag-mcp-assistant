@@ -119,25 +119,63 @@ def init_auth_tables() -> None:
 
 
 def _seed_admin_account_if_needed(cursor: sqlite3.Cursor, conn: sqlite3.Connection) -> None:
-    """Seeds the initial administrator credentials from settings if database table is empty."""
-    cursor.execute("SELECT COUNT(*) as cnt FROM admin_credentials")
+    """
+    Seeds or synchronizes the administrator credentials from settings.
+    - If empty: seeds canonical administrator email and password hash.
+    - If already present but email differs from canonical settings.ADMIN_EMAIL:
+      automatically migrates the record while preserving password hash & auth version.
+    - If explicit ADMIN_PASSWORD_HASH is set and differs: synchronizes hash.
+    - Clears stale login failure lockouts for canonical admin email upon migration.
+    """
+    cursor.execute("SELECT id, email, password_hash, auth_version FROM admin_credentials ORDER BY id ASC LIMIT 1")
     row = cursor.fetchone()
-    if row and row["cnt"] > 0:
+
+    admin_email = settings.ADMIN_EMAIL.strip().lower()
+
+    if not row:
+        pwd_hash = settings.ADMIN_PASSWORD_HASH
+        if not pwd_hash:
+            initial_pwd = settings.ADMIN_INITIAL_PASSWORD or "AdminSecurePass2026!"
+            pwd_hash = hash_password(initial_pwd)
+
+        cursor.execute(
+            "INSERT INTO admin_credentials (email, password_hash, auth_version) VALUES (?, ?, 1)",
+            (admin_email, pwd_hash),
+        )
+        conn.commit()
         return
 
-    admin_email = settings.ADMIN_EMAIL
-    pwd_hash = settings.ADMIN_PASSWORD_HASH
+    # Account exists: check if canonical email migration is required
+    existing_id = row["id"]
+    existing_email = row["email"].strip().lower()
+    existing_hash = row["password_hash"]
 
-    if not pwd_hash:
-        # Generate bcrypt hash from configured initial password
-        initial_pwd = settings.ADMIN_INITIAL_PASSWORD or "AdminSecurePass2026!"
-        pwd_hash = hash_password(initial_pwd)
+    updated = False
+    if existing_email != admin_email:
+        cursor.execute(
+            "UPDATE admin_credentials SET email = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?",
+            (admin_email, existing_id),
+        )
+        # Clear stale login attempt lockouts for old and new canonical identifiers
+        cursor.execute(
+            "DELETE FROM login_attempts WHERE identifier IN (?, ?)",
+            (existing_email, admin_email),
+        )
+        updated = True
+        print(f"[AUTH BOOTSTRAP] Migrated administrator email from '{existing_email}' to canonical '{admin_email}'.")
 
-    cursor.execute(
-        "INSERT INTO admin_credentials (email, password_hash, auth_version) VALUES (?, ?, 1)",
-        (admin_email, pwd_hash),
-    )
-    conn.commit()
+    # If explicit new ADMIN_PASSWORD_HASH configured in environment/secrets, update it
+    if settings.ADMIN_PASSWORD_HASH and settings.ADMIN_PASSWORD_HASH != existing_hash:
+        cursor.execute(
+            "UPDATE admin_credentials SET password_hash = ?, auth_version = auth_version + 1, updated_at = CURRENT_TIMESTAMP WHERE id = ?",
+            (settings.ADMIN_PASSWORD_HASH, existing_id),
+        )
+        cursor.execute("DELETE FROM login_attempts WHERE identifier = ?", (admin_email,))
+        updated = True
+        print(f"[AUTH BOOTSTRAP] Updated administrator password hash from configured settings.")
+
+    if updated:
+        conn.commit()
 
 
 # --- Password Cryptography & Policy ---

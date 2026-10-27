@@ -51,7 +51,7 @@ from app.auth import (
     verify_password_reset_token,
     AuthError,
 )
-from app.auth_email import send_password_reset_email
+from app.auth_email import send_password_reset_email, build_password_reset_url
 from agents.graph import run_assistant
 from agents.memory import ConversationMemory
 from rag.ingest import load_single_document
@@ -202,7 +202,7 @@ def render_login_view():
     col1, col2, col3 = st.columns([1, 1.8, 1])
     with col2:
         with st.form("admin_login_form"):
-            email_val = st.text_input("Administrator Email", placeholder="admin@assistant.local")
+            email_val = st.text_input("Administrator Email", value=settings.ADMIN_EMAIL, placeholder=settings.ADMIN_EMAIL)
             password_val = st.text_input("Password", type="password", placeholder="Enter administrator password")
             submit_btn = st.form_submit_button("Sign In", use_container_width=True, type="primary")
 
@@ -241,7 +241,7 @@ def render_forgot_password_view():
     col1, col2, col3 = st.columns([1, 1.8, 1])
     with col2:
         with st.form("forgot_password_form"):
-            email_val = st.text_input("Registered Administrator Email", placeholder="admin@assistant.local")
+            email_val = st.text_input("Registered Administrator Email", value=settings.ADMIN_EMAIL, placeholder=settings.ADMIN_EMAIL)
             submit_btn = st.form_submit_button("Send Reset Link", use_container_width=True, type="primary")
 
             if submit_btn:
@@ -253,12 +253,27 @@ def render_forgot_password_view():
                     raw_token = generate_password_reset_token(clean_email)
                     if raw_token:
                         try:
-                            send_password_reset_email(clean_email, raw_token)
+                            sent_ok, send_msg = send_password_reset_email(clean_email, raw_token)
                         except Exception as e:
+                            sent_ok, send_msg = False, str(e)
                             print(f"[UI FORGOT PWD] Failed to send email: {e}")
 
-                    st.success("✅ If the email address matches our administrator records, a password reset link has been sent.")
-                    st.info("The reset link is valid for 15 minutes and can only be used once.")
+                        if sent_ok:
+                            st.success("✅ A password reset link has been dispatched to your administrator email.")
+                            st.info("The reset link is valid for 15 minutes and can only be used once.")
+                        else:
+                            st.warning(f"⚠️ Password reset token was generated, but email delivery could not be completed: {send_msg}")
+                            st.info(
+                                "On Streamlit Community Cloud, add `GMAIL_USER` & `GMAIL_APP_PASSWORD` or `GOOGLE_TOKEN_JSON` "
+                                "in your app secrets to receive automated emails."
+                            )
+                            reset_url = build_password_reset_url(raw_token)
+                            with st.expander("🛠️ Admin Direct Reset Link (Emergency Diagnostic)"):
+                                st.caption("Because cloud email transport is not configured, you can use this single-use link directly:")
+                                st.code(reset_url, language="text")
+                    else:
+                        st.success("✅ If the email address matches our administrator records, a password reset link has been sent.")
+                        st.info("The reset link is valid for 15 minutes and can only be used once.")
 
         if st.button("← Back to Sign In", use_container_width=True):
             st.session_state.auth_view = "login"
@@ -441,23 +456,24 @@ with st.sidebar:
         st.markdown(f"**Protocol**: `Model Context Protocol (FastMCP)`")
     st.divider()
 
-    # Student Settings (Compact layout, no email input)
-    st.markdown("#### ⚙️ Student Settings")
-    curr_name = ConversationMemory.get_preference("name", settings.USER_NAME)
+    # Admin Settings (Compact layout, no email input)
+    st.markdown("#### ⚙️ Admin Settings")
+    curr_name = ConversationMemory.get_preference("admin_name", ConversationMemory.get_preference("name", "Administrator"))
 
     col_name, col_btn = st.columns([2.4, 1.4])
     with col_name:
         new_name = st.text_input(
-            "Student Name",
+            "Admin Name",
             value=curr_name,
             label_visibility="collapsed",
-            placeholder="Student Name",
+            placeholder="Admin Name",
         )
     with col_btn:
         if st.button("Save Profile", use_container_width=True):
-            cleaned_name = new_name.strip() or settings.USER_NAME
+            cleaned_name = new_name.strip() or "Administrator"
+            ConversationMemory.set_preference("admin_name", cleaned_name)
             ConversationMemory.set_preference("name", cleaned_name)
-            st.toast("Profile updated!", icon="✅")
+            st.toast("Admin profile updated!", icon="✅")
 
     st.divider()
 

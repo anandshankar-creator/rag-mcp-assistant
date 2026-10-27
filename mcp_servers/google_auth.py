@@ -18,6 +18,7 @@ Security & Academic Review Defense:
 """
 
 from __future__ import annotations
+import json
 import os
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
@@ -44,6 +45,25 @@ GOOGLE_SCOPES = [
 ]
 
 
+def _get_cloud_secret(key: str) -> Optional[Any]:
+    """Helper to safely retrieve secrets from environment or Streamlit secrets."""
+    val = os.getenv(key)
+    if val is not None and str(val).strip():
+        return str(val).strip()
+
+    try:
+        import streamlit as st
+        if hasattr(st, "secrets") and st.secrets is not None:
+            if key in st.secrets:
+                return st.secrets[key]
+            if key.lower() in st.secrets:
+                return st.secrets[key.lower()]
+    except Exception:
+        pass
+
+    return None
+
+
 class GoogleAuthManager:
     """Handles OAuth 2.0 desktop authentication, token caching, and client building."""
 
@@ -58,20 +78,73 @@ class GoogleAuthManager:
         self.scopes = scopes or GOOGLE_SCOPES
         self._cached_credentials: Optional[Credentials] = None
 
+    def _load_credentials_from_secrets(self) -> Optional[Credentials]:
+        """
+        Attempts to load Google OAuth credentials from Streamlit Secrets or environment.
+        Supports:
+        1. GOOGLE_TOKEN_JSON: full authorized user token JSON string
+        2. [google_oauth] section in secrets.toml (dict with client_id, refresh_token, etc.)
+        3. Individual secrets: GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, GOOGLE_REFRESH_TOKEN
+        """
+        # 1. Full JSON string in GOOGLE_TOKEN_JSON
+        raw_json = _get_cloud_secret("GOOGLE_TOKEN_JSON")
+        if raw_json and isinstance(raw_json, str) and raw_json.strip():
+            try:
+                info = json.loads(raw_json.strip())
+                return Credentials.from_authorized_user_info(info, self.scopes)
+            except Exception as e:
+                print(f"[GOOGLE AUTH WARNING] Failed to parse GOOGLE_TOKEN_JSON: {e}")
+
+        # 2. [google_oauth] section in st.secrets
+        try:
+            import streamlit as st
+            if hasattr(st, "secrets") and st.secrets is not None:
+                oauth_sec = st.secrets.get("google_oauth") or st.secrets.get("google_token")
+                if oauth_sec and hasattr(oauth_sec, "get"):
+                    info = dict(oauth_sec)
+                    return Credentials.from_authorized_user_info(info, self.scopes)
+        except Exception:
+            pass
+
+        # 3. Individual secret keys
+        cid = _get_cloud_secret("GOOGLE_CLIENT_ID")
+        csecret = _get_cloud_secret("GOOGLE_CLIENT_SECRET")
+        rtoken = _get_cloud_secret("GOOGLE_REFRESH_TOKEN")
+        if cid and csecret and rtoken:
+            info = {
+                "client_id": cid,
+                "client_secret": csecret,
+                "refresh_token": rtoken,
+                "token_uri": "https://oauth2.googleapis.com/token",
+            }
+            try:
+                return Credentials.from_authorized_user_info(info, self.scopes)
+            except Exception as e:
+                print(f"[GOOGLE AUTH WARNING] Failed to construct credentials from individual secrets: {e}")
+
+        return None
+
     def get_credentials(self) -> Tuple[Optional[Credentials], Dict[str, Any]]:
         """
         Retrieves valid Google credentials.
         Returns (Credentials, status_dict).
+        Supports:
+        - Cached disk token (credentials/google_token.json) for local execution
+        - Streamlit Cloud secrets (GOOGLE_TOKEN_JSON / [google_oauth])
         """
         creds = None
 
-        # Check existing token cache
+        # Check existing token cache on disk
         if self.token_path.exists():
             try:
                 creds = Credentials.from_authorized_user_file(str(self.token_path), self.scopes)
             except Exception as e:
                 print(f"[GOOGLE AUTH WARNING] Failed to load cached token: {e}")
                 creds = None
+
+        # If not present on disk, check Streamlit Secrets / Cloud environment
+        if not creds:
+            creds = self._load_credentials_from_secrets()
 
         # Validate or refresh existing token
         if creds and creds.valid:
@@ -81,8 +154,12 @@ class GoogleAuthManager:
         if creds and creds.expired and creds.refresh_token:
             try:
                 creds.refresh(Request())
-                with open(self.token_path, "w", encoding="utf-8") as f:
-                    f.write(creds.to_json())
+                try:
+                    self.token_path.parent.mkdir(parents=True, exist_ok=True)
+                    with open(self.token_path, "w", encoding="utf-8") as f:
+                        f.write(creds.to_json())
+                except Exception:
+                    pass
                 self._cached_credentials = creds
                 return creds, {"status": "authenticated", "mode": "token_refreshed"}
             except Exception as e:
@@ -94,9 +171,10 @@ class GoogleAuthManager:
             return None, {
                 "status": "unconfigured",
                 "message": (
-                    f"Google OAuth client secrets file not found at '{self.client_secrets_path}'. "
-                    "To enable live Google Workspace APIs, download your desktop OAuth client credentials "
-                    "from Google Cloud Console and place them in 'credentials/credentials.json'."
+                    "Google OAuth credentials not found. "
+                    "For local development, place OAuth credentials in 'credentials/credentials.json'. "
+                    "For Streamlit Community Cloud, add 'GOOGLE_TOKEN_JSON' or '[google_oauth]' in Streamlit Secrets, "
+                    "or configure 'GMAIL_USER' and 'GMAIL_APP_PASSWORD' for direct SMTP email delivery."
                 ),
             }
 

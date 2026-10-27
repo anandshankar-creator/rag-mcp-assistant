@@ -115,4 +115,4 @@ def send_password_reset_email(
 
     # 3. Fail-Soft: Provider unavailable
     print("[AUTH EMAIL] No live email provider available or configured. Failing safely.")
-    return False, "Email delivery provider unavailable."
+    return False, "Email service is unconfigured on this cloud instance. Please configure GMAIL_USER & GMAIL_APP_PASSWORD or GOOGLE_TOKEN_JSON in Streamlit Secrets."
